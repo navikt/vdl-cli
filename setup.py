@@ -27,6 +27,7 @@ setup(
     extras_require={
         "all": [
             "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
+            "xlsxwriter"
         ],
         "dev": [
             "black",

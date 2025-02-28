@@ -70,17 +70,24 @@ def table_diff(table, primary_key):
     print(f"Dev: {len(dev_db)} rows")
     print("")
 
-    print("Diff:")
+    if len(prod_db) == 0 and len(dev_db) == 0:
+        print("No diff")
+        return
+
     diff = prod_db.compare(
         other=dev_db, align_axis=0, result_names=(database, dev_database)
     )
-    print(diff)
+    preview_diff = input("Preview diff? y/N:").lower() == "y"
+    if preview_diff:
+        print("Diff:")
+        print(diff)
+        print("")
 
-    generate_report = input("Vil du lage excel-rapport? y/N:").lower() == "y"
+    generate_report = input("Export to excel? y/N:").lower() == "y"
     if generate_report:
         dagens_dato = pd.Timestamp.now().strftime("%Y-%m-%d")
         file_name = f"diff_{table.lower()}_{dagens_dato}.xlsx"
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             diff.to_excel(writer, sheet_name="diff", merge_cells=False)
             worksheet = writer.sheets["diff"]
-        print(f"Excel-rapport lagret som {file_name}")
+        print(f"Excel-report stored as: {file_name}")

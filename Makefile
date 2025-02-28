@@ -9,7 +9,7 @@ install:
 	rm -rf .venv
 	python3.11 -m venv .venv && \
 		${PY} pip install --upgrade pip && \
-		${PY} pip install -e .[dev]
+		${PY} pip install -e .[dev,all]
 
 start-colima:
 	colima start --arch x86_64 --memory 6
