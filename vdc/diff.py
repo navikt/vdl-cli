@@ -39,7 +39,13 @@ def _query_builder(database, dev_database, schema, table, primary_key):
     return query
 
 
-def table_diff(table, primary_key):
+def _compare_df(prod_df, dev_df, prod_name, dev_name):
+    return prod_df.compare(
+        other=dev_df, align_axis=0, result_names=(prod_name, dev_name)
+    )
+
+
+def table_diff(table, primary_key, fetch_diff=_fetch_diff):
     database, schema, table = table.upper().split(".")
     primary_key = primary_key.upper()
 
@@ -54,7 +60,7 @@ def table_diff(table, primary_key):
     print(query)
     print("")
 
-    df = _fetch_diff(query)
+    df = fetch_diff(query)
     prod_db = (
         df.query(f"DB_ENV == '{database}'")
         .drop(columns=["DB_ENV"])
@@ -74,9 +80,8 @@ def table_diff(table, primary_key):
         print("No diff")
         return
 
-    diff = prod_db.compare(
-        other=dev_db, align_axis=0, result_names=(database, dev_database)
-    )
+    diff = _compare_df(prod_df=prod_db, dev_df=dev_db, prod_name="prod", dev_name="dev")
+
     preview_diff = input("Preview diff? y/N:").lower() == "y"
     if preview_diff:
         print("Diff:")
