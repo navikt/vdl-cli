@@ -20,10 +20,10 @@ if [ ! -f .venv/bin/pip ]; then
   make install
 fi
 
-#if [ -f .venv/bin/pip ]; then
-#  source .venv/bin/activate
+if [ -f .venv/bin/pip ]; then
+  source .venv/bin/activate
 #  dependency_diff=$(grep -Fvf <(pip freeze) requirements-lock.txt)
-#fi
+fi
 
 #if [[ ! -z "$dependency_diff" ]]; then
 #  echo deps diff: $dependency_diff
