@@ -68,7 +68,7 @@ def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
     print(f"Dev: {len(dev_df)} rows")
     print("")
 
-    if len(prod_df) == 0 and len(dev_df) == 0:
+    if prod_df.equals(dev_df):
         print("No diff")
         return
 
