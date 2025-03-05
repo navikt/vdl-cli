@@ -22,7 +22,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "click"
+        "click",
+        "pyyaml",
+        "jinja2"
     ],
     extras_require={
         "all": [
