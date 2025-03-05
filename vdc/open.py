@@ -181,8 +181,9 @@ def setup_env():
         print("Comparing environment with requirements-lock.txt")
 
         requirements_lock_content = requirements_lock.read_text()
-
-        if environment_content != requirements_lock_content:
+        requirements_lock_packages = set(requirements_lock_content.splitlines())
+        envrionment_packages = set(environment_content.splitlines())
+        if not requirements_lock_packages.issubset(envrionment_packages):
             print(
                 "Environment does not match requirements-lock.txt. Reinstalling environment"
             )
