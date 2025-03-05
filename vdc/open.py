@@ -192,12 +192,12 @@ def setup_env():
             print("Environment matches requirements-lock.txt")
         print("")
 
-    if environment_content.find("dbt-core") == -1:
+    if not "dbt-core" in environment_content:
         print(
             "dbt-core is not installed in environment. Please add dbt to requirements.txt and update environment"
         )
         exit(1)
-    if environment_content.find("dbt-snowflake") == -1:
+    if not "dbt-snowflake" in environment_content:
         print(
             "dbt-snowflake is not installed in environment. Please add dbt-snowflake to requirements.txt and update environment"
         )
@@ -232,7 +232,7 @@ def setup_env():
     print("dbt setup is done")
     print("")
 
-    if "snowbird" in requirements.read_text():
+    if "snowbird" in environment_content:
         print("Found snowbird in environment")
         print("Setting up snowbird")
         _setup_snowbird(selected_dbt_target=selected_dbt_target)
