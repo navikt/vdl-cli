@@ -3,6 +3,8 @@ import sys
 import click
 from importlib.metadata import version
 
+from vdc.open import setup_env
+
 
 vdc_version = version("vdc")
 
@@ -17,14 +19,7 @@ def cli(ctx):
 
 @cli.command()
 def open():
-    import os.path
-    if os.path.isfile("vdl_project.yaml"):
-        ...
-    if os.path.isfile("setup_env.sh"):
-        subprocess.run(["./setup_env.sh"])
-        return
-    print("Could not find vdl_project.yml or setup_env.sh")
-    sys.exit(1)
+    setup_env()
 
 #@cli.command()
 #@click.argument("db", nargs=1, required=True)

@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="vdc",
-    version="0.0.2",
+    version="0.1.2",
     description=(
         "CLI tool for helping with daily tasks in Virksomhetsdatalaget"
     ),
@@ -22,7 +22,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "click"
+        "click",
+        "pyyaml",
+        "jinja2"
     ],
     extras_require={
         "all": [
