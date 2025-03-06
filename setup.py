@@ -4,11 +4,9 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="vdc",
-    version="0.1.2",
-    description=(
-        "CLI tool for helping with daily tasks in Virksomhetsdatalaget"
-    ),
+    name="vdl-cli",
+    version="0.1.6",
+    description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
     author="NAV IT Virksomhetsdatalaget",
     author_email="virksomhetsdatalaget@nav.no",
@@ -21,15 +19,11 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
-    install_requires=[
-        "click",
-        "pyyaml",
-        "jinja2"
-    ],
+    install_requires=["click", "pyyaml", "jinja2"],
     extras_require={
         "all": [
             "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
-            "xlsxwriter"
+            "xlsxwriter",
         ],
         "dev": [
             "black",

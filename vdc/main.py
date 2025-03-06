@@ -1,12 +1,12 @@
 import subprocess
 import sys
-import click
 from importlib.metadata import version
+
+import click
 
 from vdc.open import setup_env
 
-
-vdc_version = version("vdc")
+vdc_version = version("vdl-cli")
 
 
 @click.group(name="cli", invoke_without_command=True)
@@ -21,11 +21,12 @@ def cli(ctx):
 def open():
     setup_env()
 
-#@cli.command()
-#@click.argument("db", nargs=1, required=True)
-#@click.argument("to", nargs=1, required=True)
-#@click.option("--usage", "-u", multiple=True, help="Grant usage to role")
-#def clone(db, to, usage):
+
+# @cli.command()
+# @click.argument("db", nargs=1, required=True)
+# @click.argument("to", nargs=1, required=True)
+# @click.option("--usage", "-u", multiple=True, help="Grant usage to role")
+# def clone(db, to, usage):
 #    from vdc.clone import create_db_clone
 #
 #    create_db_clone(src=db, dst=to, usage=usage)

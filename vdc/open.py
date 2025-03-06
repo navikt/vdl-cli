@@ -118,28 +118,59 @@ def _install_environment():
         exit(1)
 
 
-def _setup_snowbird(selected_dbt_target):
-    selected_user = selected_dbt_target["user"]
+def _replace_dev_database(prod_target_database, selected_database, selected_role):
+    assert (
+        prod_target_database != selected_database
+    )  # should not happen because of validate_target
+
+    snowbird_command = [
+        ".venv/bin/snowbird",
+        "clone",
+        prod_target_database,
+        selected_database,
+        "--usage",
+        selected_role,
+    ]
+    replace_database_output = subprocess.run(snowbird_command)
+
+    if replace_database_output.returncode != 0:
+        print("Failed to replace database")
+        exit(1)
+    print("Database replaced")
+    print("")
+
+
+def _setup_snowbird(config=None):
+    config = config or {
+        "user": os.environ["DBT_USR"],
+        "account": "wx23413.europe-west4.gcp",
+        "warehouse": "dev__xs",
+        "database": "test_db",
+        "role": "securityadmin",
+        "authenticator": "externalbrowser",
+    }
+
+    selected_user = config["user"]
     print(f"Selected user: {selected_user}")
     os.environ["PERMISSION_BOT_USER"] = selected_user
 
-    selected_account = selected_dbt_target["account"]
+    selected_account = config["account"]
     print(f"Selected account: {selected_account}")
     os.environ["PERMISSION_BOT_ACCOUNT"] = selected_account
 
-    selected_warehouse = selected_dbt_target["warehouse"]
+    selected_warehouse = config["warehouse"]
     print(f"Selected warehouse: {selected_warehouse}")
     os.environ["PERMISSION_BOT_WAREHOUSE"] = selected_warehouse
 
-    selected_database = selected_dbt_target["database"]
+    selected_database = config["database"]
     print(f"Selected database: {selected_database}")
     os.environ["PERMISSION_BOT_DATABASE"] = selected_database
 
-    selected_role = "securityadmin"
+    selected_role = config["role"]
     print(f"Selected role: {selected_role}")
     os.environ["PERMISSION_BOT_ROLE"] = selected_role
 
-    selected_authenticator = selected_dbt_target["authenticator"]
+    selected_authenticator = config["authenticator"]
     print(f"Selected authenticator: {selected_authenticator}")
     os.environ["PERMISSION_BOT_AUTHENTICATOR"] = selected_authenticator
     print("")
@@ -152,12 +183,6 @@ def setup_env():
 
     makefile = Path("Makefile")
     _validate_file(makefile)
-    requirements = Path("requirements.txt")
-    _validate_file(requirements)
-    dbt_project_file = Path("dbt/dbt_project.yml")
-    _validate_file(dbt_project_file)
-    profile_file = Path("dbt/profiles.yml")
-    _validate_file(profile_file)
     print("")
 
     _validate_program("code")
@@ -192,57 +217,61 @@ def setup_env():
             print("Environment matches requirements-lock.txt")
         print("")
 
-    if not "dbt-core" in environment_content:
-        print(
-            "dbt-core is not installed in environment. Please add dbt to requirements.txt and update environment"
-        )
-        exit(1)
-    if not "dbt-snowflake" in environment_content:
-        print(
-            "dbt-snowflake is not installed in environment. Please add dbt-snowflake to requirements.txt and update environment"
-        )
-        exit(1)
-
-    print("Found dbt in environment")
-    print("Setting up dbt")
-    default_dbt_targets = ["dev", "prod"]
-    dbt_targets = _get_dbt_targets(
-        project_file=dbt_project_file,
-        profile_file=profile_file,
-    )
-    _validate_dbt_targets(targets=dbt_targets, default_targets=default_dbt_targets)
-    print("dbt project configuration is ok")
-    print("")
-
-    print("Select dbt target output")
-    selected_target = _selector(default_dbt_targets)
-    selected_dbt_target = dbt_targets[selected_target]
-    selected_database = selected_dbt_target["database"]
-    selected_role = selected_dbt_target["role"]
-    selected_user = selected_dbt_target["user"]
-
-    _validate_dbt_user(selected_user)
-
-    os.environ["DBT_TARGET"] = selected_target
-
-    print(f"Selected target username: {selected_user}")
-    print(f"Selected target database: {selected_database}")
-    print(f"Selected target role: {selected_role}")
-    print("")
-    print("dbt setup is done")
-    print("")
-
-    if "snowbird" in environment_content:
+    snowbird_is_installed = "snowbird" in environment_content
+    if snowbird_is_installed:
         print("Found snowbird in environment")
         print("Setting up snowbird")
-        _setup_snowbird(selected_dbt_target=selected_dbt_target)
+        _setup_snowbird()
         print("snowbird setup is done")
         print("")
-        if selected_target != "prod":
+
+    dbt_is_installed = "dbt-core" and "dbt-snowflake" in environment_content
+    if not dbt_is_installed:
+        continue_witouth_dbt = (
+            input(
+                "dbt-core or dbt-snowflake is not installed in environment. Are you sure you want to continue? Y/n: "
+            ).lower()
+            != "n"
+        )
+        if not continue_witouth_dbt:
+            exit(0)
+
+    if dbt_is_installed:
+        print("Found dbt in environment")
+        dbt_project_file = Path("dbt/dbt_project.yml")
+        _validate_file(dbt_project_file)
+        profile_file = Path("dbt/profiles.yml")
+        _validate_file(profile_file)
+        print("Setting up dbt")
+        default_dbt_targets = ["dev", "prod"]
+        dbt_targets = _get_dbt_targets(
+            project_file=dbt_project_file,
+            profile_file=profile_file,
+        )
+        _validate_dbt_targets(targets=dbt_targets, default_targets=default_dbt_targets)
+        print("dbt project configuration is ok")
+        print("")
+
+        print("Select dbt target output")
+        selected_target = _selector(default_dbt_targets)
+        selected_dbt_target = dbt_targets[selected_target]
+        selected_database = selected_dbt_target["database"]
+        selected_role = selected_dbt_target["role"]
+        selected_user = selected_dbt_target["user"]
+
+        _validate_dbt_user(selected_user)
+
+        os.environ["DBT_TARGET"] = selected_target
+
+        print(f"Selected target username: {selected_user}")
+        print(f"Selected target database: {selected_database}")
+        print(f"Selected target role: {selected_role}")
+        print("")
+        print("dbt setup is done")
+        print("")
+
+        if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
             prod_target_database = dbt_targets["prod"]["database"]
-            assert (
-                prod_target_database != selected_database
-            )  # should not happen because of validate_target
             replace_selected_database = (
                 input(
                     f"Do you want to replace database '{selected_database}' with a clone of database '{prod_target_database}' and give usage to role '{selected_role}'? y/N: "
@@ -253,21 +282,11 @@ def setup_env():
                 print(
                     f"Replacing {selected_database} with a clone of {prod_target_database}"
                 )
-                snowbird_command = [
-                    ".venv/bin/snowbird",
-                    "clone",
-                    prod_target_database,
-                    selected_database,
-                    "--usage",
-                    selected_role,
-                ]
-                replace_database_output = subprocess.run(snowbird_command)
-
-                if replace_database_output.returncode != 0:
-                    print("Failed to replace database")
-                    exit(1)
-                print("Database replaced")
-                print("")
+                _replace_dev_database(
+                    prod_target_database=prod_target_database,
+                    selected_database=selected_database,
+                    selected_role=selected_role,
+                )
 
     print("Launching vscode")
     subprocess.run("source .venv/bin/activate && code .", shell=True)

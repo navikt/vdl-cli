@@ -9,13 +9,13 @@ CLI tooling for Data engineers
 Should be installed in the global python intepreter.
 
 ```shell
-pip install git+https://github.com/navikt/vdl-cli@<version>
+pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
 ```
 
 Example:
 
 ```shell
-pip install git+https://github.com/navikt/vdl-cli@v0.0.1
+pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
 ```
 
 
@@ -24,7 +24,13 @@ pip install git+https://github.com/navikt/vdl-cli@v0.0.1
 This should in most cases only be installed as dependency in the project environment.
 
 ```shell
-pip install --ignore-installed "vdc[all] @ git+https://github.com/navikt/vdl-cli@<version>"
+pip install "vdl-cli[all] @ git+https://github.com/navikt/vdl-cli@<version>"
+```
+
+## Upgrading
+
+```shell
+pip install --upgrade vdl-cli
 ```
 
 ## Usage
