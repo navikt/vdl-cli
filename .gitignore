@@ -6,3 +6,4 @@ __pycache__
 build
 
 test.py
+*diff_*.xlsx
