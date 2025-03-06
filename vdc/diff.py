@@ -37,9 +37,11 @@ def _query_builder(database, other_database, schema, table, primary_key):
 
 
 def _compare_df(prod_df, dev_df, prod_name, dev_name):
-    return prod_df.compare(
-        other=dev_df, align_axis=0, result_names=(prod_name, dev_name)
-    )
+    full_outer_join = pd.merge(prod_df, dev_df, how='outer', indicator=True)
+    unique_prod_rows = full_outer_join[full_outer_join['_merge'] == 'left only'].rename(columns={"_merge": "result_name"}).replace('left only', prod_name)
+    unique_dev_rows = full_outer_join[full_outer_join['_merge'] == 'right only'].rename(columns={"_merge": "result_name"}).replace('right only', dev_name)
+    unique_rows = [unique_prod_rows, unique_dev_rows]
+    return pd.concat(unique_rows)
 
 
 def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
