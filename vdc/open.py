@@ -231,7 +231,7 @@ def setup_env():
             input(
                 "dbt-core or dbt-snowflake is not installed in environment. Are you sure you want to continue? Y/n: "
             ).lower()
-            != "y"
+            != "n"
         )
         if not continue_witouth_dbt:
             exit(0)
