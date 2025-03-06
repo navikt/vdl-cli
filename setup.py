@@ -4,8 +4,8 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="vdc",
-    version="0.1.3",
+    name="vdl-cli",
+    version="0.1.4",
     description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
     author="NAV IT Virksomhetsdatalaget",
