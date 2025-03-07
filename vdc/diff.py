@@ -48,11 +48,11 @@ def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
     )
 
 
-def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
+def table_diff(table, primary_key, compare_to=None, fetch_diff=_fetch_diff, ci=False):
     database, schema, table = table.upper().split(".")
     primary_key = primary_key.upper()
-
-    dev_database = f"dev_{os.environ['USER']}_{database}"
+    compare_to = compare_to or f"dev_{os.environ['USER']}_{database}"
+    dev_database = compare_to
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
@@ -79,8 +79,6 @@ def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
     print("")
 
     prod_df, dev_df = fetch_diff(prod_query=prod_query, dev_query=dev_query)
-    prod_df = prod_df.set_index(primary_key)
-    dev_df = dev_df.set_index(primary_key)
 
     print(f"Prod: {len(prod_df)} rows")
     print(f"Dev: {len(dev_df)} rows")
