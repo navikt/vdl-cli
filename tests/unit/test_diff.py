@@ -30,7 +30,7 @@ class TestTableDiff(unittest.TestCase):
 
         result = _compare_df(prod_df, dev_df, "prod", "dev", "a")
         expected = pd.DataFrame(
-            {"a": [3], "b": [6.0], "result_name": ["prod"]}
+            {"a": [3, 3], "b": [6.0, None], "result_name": ["prod", "dev"]}
         ).set_index(["a", "result_name"])
         self.assertTrue(result.equals(expected))
 
