@@ -39,7 +39,8 @@ def open(verbose):
 @cli.command()
 @click.argument("table", nargs=1, required=True)
 @click.argument("primary_key", nargs=1, required=True)
-def diff(table, primary_key):
+@click.option("--compare-to", "-c", help="Database you want to compare against")
+def diff(table, primary_key, compare_to):
     from vdc.diff import table_diff
 
-    table_diff(table, primary_key)
+    table_diff(table, primary_key, compare_to)

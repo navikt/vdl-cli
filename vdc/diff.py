@@ -16,67 +16,89 @@ def _snow_config():
     }
 
 
-def _fetch_diff(query):
+def _fetch_diff(prod_query, dev_query):
     with snowflake.connector.connect(**_snow_config()) as ctx:
         cur = ctx.cursor()
-        cur.execute(query)
-        return cur.fetch_pandas_all()
+        cur.execute(prod_query)
+        prod_df = cur.fetch_pandas_all()
+
+        cur.execute(dev_query)
+        dev_df = cur.fetch_pandas_all()
+        return prod_df, dev_df
 
 
-def _query_builder(database, dev_database, schema, table, primary_key):
-    order_by = f"{primary_key},db_env"
-
-    query = f"""
-    select '{database}' as db_env, * from {database}.{schema}.{table}
+def _query_builder(database, other_database, schema, table, primary_key):
+    return f"""
+    select * from {database}.{schema}.{table}
     except
-    select '{database}' as db_env, * from {dev_database}.{schema}.{table}
-    union all
-    select '{dev_database}' as db_env, * from {dev_database}.{schema}.{table}
-    except
-    select '{dev_database}' as db_env, * from {database}.{schema}.{table}
-    order by {order_by}
+    select  * from {other_database}.{schema}.{table}
+    order by {primary_key}
     """
-    return query
 
 
-def table_diff(table, primary_key):
+def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
+    outer = pd.merge(
+        prod_df, dev_df, on=primary_key, how="outer", suffixes=("_df1", "_df2")
+    ).set_index(primary_key)
+    outer.columns = pd.MultiIndex.from_tuples(
+        outer.columns.str.split("_").map(tuple)
+    ).swaplevel()
+    return outer["df1"].compare(
+        other=outer["df2"], align_axis=0, result_names=(prod_name, dev_name)
+    )
+
+
+def table_diff(table, primary_key, compare_to=None, fetch_diff=_fetch_diff, ci=False):
     database, schema, table = table.upper().split(".")
     primary_key = primary_key.upper()
-
-    dev_database = f"dev_{os.environ['USER']}_{database}"
+    compare_to = compare_to or f"dev_{os.environ['USER']}_{database}"
+    dev_database = compare_to
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
 
-    query = _query_builder(database, dev_database, schema, table, primary_key)
+    prod_query = _query_builder(
+        database=database,
+        other_database=dev_database,
+        schema=schema,
+        table=table,
+        primary_key=primary_key,
+    )
+    dev_query = _query_builder(
+        database=dev_database,
+        other_database=database,
+        schema=schema,
+        table=table,
+        primary_key=primary_key,
+    )
 
     print("Running query:")
-    print(query)
+    print(prod_query)
+    print("")
+    print(dev_query)
     print("")
 
-    df = _fetch_diff(query)
-    prod_db = (
-        df.query(f"DB_ENV == '{database}'")
-        .drop(columns=["DB_ENV"])
-        .set_index(primary_key)
-    )
-    print(f"Prod: {len(prod_db)} rows")
+    prod_df, dev_df = fetch_diff(prod_query=prod_query, dev_query=dev_query)
 
-    dev_db = (
-        df.query(f"DB_ENV == '{dev_database}'")
-        .drop(columns=["DB_ENV"])
-        .set_index(primary_key)
-    )
-    print(f"Dev: {len(dev_db)} rows")
+    print(f"Prod: {len(prod_df)} rows")
+    print(f"Dev: {len(dev_df)} rows")
     print("")
 
-    if len(prod_db) == 0 and len(dev_db) == 0:
+    if len(prod_df) == 0 and len(dev_df) == 0:
         print("No diff")
         return
 
-    diff = prod_db.compare(
-        other=dev_db, align_axis=0, result_names=(database, dev_database)
+    diff = _compare_df(
+        prod_df=prod_df,
+        dev_df=dev_df,
+        prod_name="prod",
+        dev_name="dev",
+        primary_key=primary_key,
     )
+
+    if ci:
+        return diff
+
     preview_diff = input("Preview diff? y/N:").lower() == "y"
     if preview_diff:
         print("Diff:")
