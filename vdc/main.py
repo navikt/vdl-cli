@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import sys
 from importlib.metadata import version
@@ -18,7 +19,10 @@ def cli(ctx):
 
 
 @cli.command()
-def open():
+@click.option("--verbose", is_flag=True, help="Print verbose output")
+def open(verbose):
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
     setup_env()
 
 

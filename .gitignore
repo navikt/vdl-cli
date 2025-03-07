@@ -8,3 +8,5 @@ build
 test.py
 
 .DS_Store
+
+*diff_*.xlsx
