@@ -274,6 +274,7 @@ def setup_env():
                 echo(
                     f"Replacing {selected_database} with a clone of {prod_target_database}"
                 )
+                # TODO: implement spinner when this function is running
                 _replace_dev_database(
                     prod_target_database=prod_target_database,
                     selected_database=selected_database,
