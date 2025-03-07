@@ -37,15 +37,16 @@ def _query_builder(database, other_database, schema, table, primary_key):
 
 
 def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
-    outer = pd.merge(
-        prod_df, dev_df, on=primary_key, how="outer", suffixes=("_df1", "_df2")
-    ).set_index(primary_key)
-    outer.columns = pd.MultiIndex.from_tuples(
-        outer.columns.str.split("_").map(tuple)
-    ).swaplevel()
-    return outer["df1"].compare(
-        other=outer["df2"], align_axis=0, result_names=(prod_name, dev_name)
-    )
+    prod_df = prod_df.set_index(primary_key)
+    dev_df = dev_df.set_index(primary_key)
+
+    prod_diff = prod_df.index.difference(dev_df.index)
+    dev_diff = dev_df.index.difference(prod_df.index)
+
+    df1 = prod_df.reindex(prod_df.index.values.tolist() + dev_diff.values.tolist())
+    df2 = dev_df.reindex(dev_df.index.values.tolist() + prod_diff.values.tolist())
+
+    return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
 
 def table_diff(table, primary_key, compare_to=None, fetch_diff=_fetch_diff, ci=False):
