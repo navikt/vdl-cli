@@ -1,10 +1,14 @@
+import logging
 import os
 import subprocess
 from pathlib import Path
 from shutil import which
 
 import yaml
+from click import clear, echo
 from jinja2 import Environment
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _env_override(value, default=None):
@@ -19,15 +23,15 @@ def _render_template(template):
 
 def _selector(options):
     while True:
-        print("Available targets:")
+        echo("Available targets:")
         options = list(options)
         for i, option in enumerate(options):
-            print(f"{i+1}) {option}")
+            echo(f"{i+1}) {option}")
         selected = input("Select target: ")
         if selected.isdigit() and 0 < int(selected) <= len(options):
             return options[int(selected) - 1]
-        print("Invalid selection")
-        print("")
+        echo("Invalid selection")
+        echo("")
 
 
 def _validate_target(targets, default_targets):
@@ -57,10 +61,9 @@ def _validate_target(targets, default_targets):
 def _print_banner():
     banner_dir = os.path.dirname(__file__)
     banner_file = Path(f"{banner_dir}/banner.txt")
+    banner = banner_file.read_text()
     if banner_file.exists():
-        print("")
-        print(banner_file.read_text())
-        print("")
+        echo(f"\n{banner}\n")
 
 
 def _get_dbt_targets(project_file, profile_file):
@@ -79,32 +82,31 @@ def _get_dbt_targets(project_file, profile_file):
 def _validate_dbt_targets(targets, default_targets):
     error = _validate_target(targets=targets, default_targets=default_targets)
     if error:
-        print(error)
+        LOGGER.error(error)
         exit(1)
+    LOGGER.info("dbt project configuration is ok")
 
 
 def _validate_file(file):
     if not file.exists():
-        print(f"Could not find {file}")
+        LOGGER.error(f"Could not find {file}")
         exit(1)
-    print(f"Found file: {file}")
+    LOGGER.info(f"Found file: {file}")
 
 
 def _validate_dbt_user(user):
     if user == "None":
-        print("")
-        print(
-            "dbt target user is not defined in dbt profiles.yml. Please define a user for the target"
+        LOGGER.error(
+            "\ndbt target user is not defined in dbt profiles.yml. Please define a user for the target\n"
         )
-        print("")
         exit(1)
 
 
 def _validate_program(program):
     if which(program) is None:
-        print(f"\n{program} is not installed. Please install it.\n")
+        LOGGER.error(f"\n{program} is not installed. Please install it.\n")
         exit(1)
-    print(f"Found program: {program}")
+    LOGGER.info(f"Found program: {program}")
 
 
 def _install_environment():
@@ -114,8 +116,11 @@ def _install_environment():
         or make_install.stdout.decode(encoding="utf-8")
         == "make: Nothing to be done for `install'.\n"
     ):
-        print("Failed to install environment. Please check if 'make install' works.")
+        LOGGER.error(
+            "Failed to install environment. Please check if 'make install' works."
+        )
         exit(1)
+    LOGGER.info("Environment installed")
 
 
 def _replace_dev_database(prod_target_database, selected_database, selected_role):
@@ -151,48 +156,36 @@ def _setup_snowbird(config=None):
     }
 
     selected_user = config["user"]
-    print(f"Selected user: {selected_user}")
     os.environ["PERMISSION_BOT_USER"] = selected_user
-
     selected_account = config["account"]
-    print(f"Selected account: {selected_account}")
     os.environ["PERMISSION_BOT_ACCOUNT"] = selected_account
-
     selected_warehouse = config["warehouse"]
-    print(f"Selected warehouse: {selected_warehouse}")
     os.environ["PERMISSION_BOT_WAREHOUSE"] = selected_warehouse
-
     selected_database = config["database"]
-    print(f"Selected database: {selected_database}")
     os.environ["PERMISSION_BOT_DATABASE"] = selected_database
-
     selected_role = config["role"]
-    print(f"Selected role: {selected_role}")
     os.environ["PERMISSION_BOT_ROLE"] = selected_role
-
     selected_authenticator = config["authenticator"]
-    print(f"Selected authenticator: {selected_authenticator}")
     os.environ["PERMISSION_BOT_AUTHENTICATOR"] = selected_authenticator
-    print("")
+
+    return config
 
 
 def setup_env():
+    clear()
     _print_banner()
-    print("Validating project configuration")
-    print("")
+    LOGGER.info("Validating project configuration\n")
 
     makefile = Path("Makefile")
     _validate_file(makefile)
-    print("")
 
     _validate_program("code")
     _validate_program("make")
-    print("")
 
-    print("Setting up environment")
+    LOGGER.info("Setting up environment")
     pip_file = Path(".venv/bin/pip")
     if not pip_file.exists():
-        print("No python environment found. Installing environment")
+        echo("No python environment found. Installing environment")
         _install_environment()
     requirements_lock = Path("requirements-lock.txt")
     freeze_output = subprocess.run(
@@ -200,59 +193,60 @@ def setup_env():
         capture_output=True,
     )
     environment_content = freeze_output.stdout.decode(encoding="utf-8")
-
+    if not requirements_lock.exists():
+        LOGGER.warning("requirements-lock.txt not found. Skipping comparison")
     if requirements_lock.exists():
-        print("Found requirements-lock.txt")
-        print("Comparing environment with requirements-lock.txt")
+        LOGGER.info("Found requirements-lock.txt")
+        LOGGER.info("Comparing environment with requirements-lock.txt")
 
         requirements_lock_content = requirements_lock.read_text()
         requirements_lock_packages = set(requirements_lock_content.splitlines())
         envrionment_packages = set(environment_content.splitlines())
         if not requirements_lock_packages.issubset(envrionment_packages):
-            print(
+            echo(
                 "Environment does not match requirements-lock.txt. Reinstalling environment"
             )
             _install_environment()
         else:
-            print("Environment matches requirements-lock.txt")
+            LOGGER.info("Environment matches requirements-lock.txt")
         print("")
 
     snowbird_is_installed = "snowbird" in environment_content
+    if not snowbird_is_installed:
+        LOGGER.warning("snowbird is not installed in environment. Skipping setup")
     if snowbird_is_installed:
-        print("Found snowbird in environment")
-        print("Setting up snowbird")
-        _setup_snowbird()
-        print("snowbird setup is done")
-        print("")
+        LOGGER.info("Found snowbird in environment")
+        LOGGER.info("Setting up snowbird")
+        snowbird_config = _setup_snowbird()
+        LOGGER.info("snobird config:")
+        LOGGER.info(snowbird_config)
 
     dbt_is_installed = "dbt-core" and "dbt-snowflake" in environment_content
     if not dbt_is_installed:
+        LOGGER.warning(
+            "dbt-core or dbt-snowflake is not installed in environment. Skipping setup"
+        )
         continue_witouth_dbt = (
-            input(
-                "dbt-core or dbt-snowflake is not installed in environment. Are you sure you want to continue? Y/n: "
-            ).lower()
-            != "n"
+            input("Are you sure you want to continue? Y/n: ").lower() != "n"
         )
         if not continue_witouth_dbt:
             exit(0)
 
     if dbt_is_installed:
-        print("Found dbt in environment")
+        LOGGER.info("Found dbt in environment")
         dbt_project_file = Path("dbt/dbt_project.yml")
         _validate_file(dbt_project_file)
         profile_file = Path("dbt/profiles.yml")
         _validate_file(profile_file)
-        print("Setting up dbt")
+
         default_dbt_targets = ["dev", "prod"]
         dbt_targets = _get_dbt_targets(
             project_file=dbt_project_file,
             profile_file=profile_file,
         )
         _validate_dbt_targets(targets=dbt_targets, default_targets=default_dbt_targets)
-        print("dbt project configuration is ok")
-        print("")
 
-        print("Select dbt target output")
+        echo("Select dbt target output")
         selected_target = _selector(default_dbt_targets)
         selected_dbt_target = dbt_targets[selected_target]
         selected_database = selected_dbt_target["database"]
@@ -263,12 +257,10 @@ def setup_env():
 
         os.environ["DBT_TARGET"] = selected_target
 
-        print(f"Selected target username: {selected_user}")
-        print(f"Selected target database: {selected_database}")
-        print(f"Selected target role: {selected_role}")
-        print("")
-        print("dbt setup is done")
-        print("")
+        LOGGER.info(f"Selected target username: {selected_user}")
+        LOGGER.info(f"Selected target database: {selected_database}")
+        LOGGER.info(f"Selected target role: {selected_role}")
+        LOGGER.info("\ndbt setup is done\n")
 
         if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
             prod_target_database = dbt_targets["prod"]["database"]
@@ -279,7 +271,7 @@ def setup_env():
                 == "y"
             )
             if replace_selected_database:
-                print(
+                echo(
                     f"Replacing {selected_database} with a clone of {prod_target_database}"
                 )
                 _replace_dev_database(
@@ -288,5 +280,5 @@ def setup_env():
                     selected_role=selected_role,
                 )
 
-    print("Launching vscode")
+    echo("Launching vscode")
     subprocess.run("source .venv/bin/activate && code .", shell=True)
