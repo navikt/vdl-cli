@@ -36,12 +36,16 @@ def _query_builder(database, other_database, schema, table, primary_key):
     """
 
 
-def _compare_df(prod_df, dev_df, prod_name, dev_name):
-    full_outer_join = pd.merge(prod_df, dev_df, how='outer', indicator=True)
-    unique_prod_rows = full_outer_join[full_outer_join['_merge'] == 'left only'].rename(columns={"_merge": "result_name"}).replace('left only', prod_name)
-    unique_dev_rows = full_outer_join[full_outer_join['_merge'] == 'right only'].rename(columns={"_merge": "result_name"}).replace('right only', dev_name)
-    unique_rows = [unique_prod_rows, unique_dev_rows]
-    return pd.concat(unique_rows)
+def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
+    outer = pd.merge(
+        prod_df, dev_df, on=primary_key, how="outer", suffixes=("_df1", "_df2")
+    ).set_index(primary_key)
+    outer.columns = pd.MultiIndex.from_tuples(
+        outer.columns.str.split("_").map(tuple)
+    ).swaplevel()
+    return outer["df1"].compare(
+        other=outer["df2"], align_axis=0, result_names=(prod_name, dev_name)
+    )
 
 
 def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
@@ -53,8 +57,20 @@ def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
 
-    prod_query = _query_builder(database=database, other_database=dev_database, schema=schema, table=table, primary_key=primary_key)
-    dev_query = _query_builder(database=dev_database, other_database=database, schema=schema, table=table, primary_key=primary_key)
+    prod_query = _query_builder(
+        database=database,
+        other_database=dev_database,
+        schema=schema,
+        table=table,
+        primary_key=primary_key,
+    )
+    dev_query = _query_builder(
+        database=dev_database,
+        other_database=database,
+        schema=schema,
+        table=table,
+        primary_key=primary_key,
+    )
 
     print("Running query:")
     print(prod_query)
@@ -70,11 +86,17 @@ def table_diff(table, primary_key, fetch_diff=_fetch_diff, ci=False):
     print(f"Dev: {len(dev_df)} rows")
     print("")
 
-    if prod_df.equals(dev_df):
+    if len(prod_df) == 0 and len(dev_df) == 0:
         print("No diff")
         return
 
-    diff = _compare_df(prod_df=prod_df, dev_df=dev_df, prod_name="prod", dev_name="dev")
+    diff = _compare_df(
+        prod_df=prod_df,
+        dev_df=dev_df,
+        prod_name="prod",
+        dev_name="dev",
+        primary_key=primary_key,
+    )
 
     if ci:
         return diff
