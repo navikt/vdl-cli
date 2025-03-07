@@ -4,6 +4,8 @@ import sys
 import pandas as pd
 import snowflake.connector
 
+from vdc.utils import _spinner
+
 
 # Snowflake-config
 def _snow_config():
@@ -17,14 +19,15 @@ def _snow_config():
 
 
 def _fetch_diff(prod_query, dev_query):
-    with snowflake.connector.connect(**_snow_config()) as ctx:
-        cur = ctx.cursor()
-        cur.execute(prod_query)
-        prod_df = cur.fetch_pandas_all()
+    with _spinner("Fetching data"):
+        with snowflake.connector.connect(**_snow_config()) as ctx:
+            cur = ctx.cursor()
+            cur.execute(prod_query)
+            prod_df = cur.fetch_pandas_all()
 
-        cur.execute(dev_query)
-        dev_df = cur.fetch_pandas_all()
-        return prod_df, dev_df
+            cur.execute(dev_query)
+            dev_df = cur.fetch_pandas_all()
+            return prod_df, dev_df
 
 
 def _query_builder(database, other_database, schema, table, primary_key):
