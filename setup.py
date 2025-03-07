@@ -19,7 +19,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
-    install_requires=["click", "pyyaml", "jinja2"],
+    install_requires=["click", "pyyaml", "jinja2", "alive-progress"],
     extras_require={
         "all": [
             "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
