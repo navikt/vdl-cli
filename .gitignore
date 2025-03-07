@@ -6,4 +6,7 @@ __pycache__
 build
 
 test.py
+
+.DS_Store
+
 *diff_*.xlsx
