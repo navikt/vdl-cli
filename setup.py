@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="vdl-cli",
-    version="0.1.7",
+    version="0.1.8",
     description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
     author="NAV IT Virksomhetsdatalaget",
