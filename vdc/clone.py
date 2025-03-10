@@ -5,6 +5,14 @@ from permifrost.snowflake_connector import SnowflakeConnector
 LOGGER = logging.getLogger(__file__)
 
 
+def _snow_config(): ...
+
+
+# with snowflake.connector.connect(**_snow_config()) as ctx:
+#     cur = ctx.cursor()
+#     cur.execute(...)
+
+
 def create_db_clone(src: str, dst: str, usage: tuple[str]):
     prod_db = src
     clone_db = dst
