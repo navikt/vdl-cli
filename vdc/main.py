@@ -1,6 +1,4 @@
 import logging
-import subprocess
-import sys
 from importlib.metadata import version
 
 import click
@@ -10,12 +8,9 @@ from vdc.open import setup_env
 vdc_version = version("vdl-cli")
 
 
-@click.group(name="cli", invoke_without_command=True)
+@click.group(name="cli")
 @click.version_option(vdc_version, "--version", "-v", help="Show version and exit")
-@click.pass_context
-def cli(ctx):
-    if ctx.invoked_subcommand is None:
-        open()
+def cli(): ...
 
 
 @cli.command()

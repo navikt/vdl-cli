@@ -35,5 +35,6 @@ setup(
     entry_points="""
         [console_scripts]
         vdc=vdc.main:cli
+        o=vdc.main:open
     """,
 )
