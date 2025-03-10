@@ -5,8 +5,11 @@ from pathlib import Path
 from shutil import which
 
 import yaml
+from alive_progress import alive_bar
 from click import clear, echo
 from jinja2 import Environment
+
+from vdc.utils import _spinner
 
 LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +113,8 @@ def _validate_program(program):
 
 
 def _install_environment():
-    make_install = subprocess.run(["make"], capture_output=True)
+    with _spinner("Installing environment"):
+        make_install = subprocess.run(["make"], capture_output=True)
     if (
         make_install.returncode != 0
         or make_install.stdout.decode(encoding="utf-8")
@@ -136,7 +140,8 @@ def _replace_dev_database(prod_target_database, selected_database, selected_role
         "--usage",
         selected_role,
     ]
-    replace_database_output = subprocess.run(snowbird_command)
+    with _spinner("Replacing database"):
+        replace_database_output = subprocess.run(snowbird_command, capture_output=True)
 
     if replace_database_output.returncode != 0:
         print("Failed to replace database")
@@ -185,7 +190,7 @@ def setup_env():
     LOGGER.info("Setting up environment")
     pip_file = Path(".venv/bin/pip")
     if not pip_file.exists():
-        echo("No python environment found. Installing environment")
+        echo("No python environment found.")
         _install_environment()
     requirements_lock = Path("requirements-lock.txt")
     freeze_output = subprocess.run(
@@ -203,9 +208,7 @@ def setup_env():
         requirements_lock_packages = set(requirements_lock_content.splitlines())
         envrionment_packages = set(environment_content.splitlines())
         if not requirements_lock_packages.issubset(envrionment_packages):
-            echo(
-                "Environment does not match requirements-lock.txt. Reinstalling environment"
-            )
+            echo("Environment does not match requirements-lock.txt.")
             _install_environment()
         else:
             LOGGER.info("Environment matches requirements-lock.txt")
