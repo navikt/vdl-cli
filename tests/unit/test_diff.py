@@ -3,7 +3,7 @@ import unittest
 
 import pandas as pd
 
-from vdc.diff import _compare_df
+from vdc.diff import _compare_df, _query_builder
 
 
 class TestTableDiff(unittest.TestCase):
@@ -55,6 +55,58 @@ class TestTableDiff(unittest.TestCase):
             {"a": [3, 3], "b_c": [6.0, 7.0], "result_name": ["prod", "dev"]}
         ).set_index(["a", "result_name"])
         self.assertTrue(result.equals(expected))
+
+    def test_query_builder(self):
+        table = "database.schema.table"
+        other_database = "other_database"
+        q1, q2 = _query_builder(
+            table=table,
+            other_database=other_database,
+        )
+        result = [line.strip() for line in q1.split("\n")]
+        result.extend([line.strip() for line in q2.split("\n")])
+        print(result)
+        expected = [
+            "",
+            "select * from database.schema.table",
+            "except",
+            "select * from other_database.schema.table",
+            "",
+            "",
+            "select * from other_database.schema.table",
+            "except",
+            "select * from database.schema.table",
+            "",
+        ]
+        self.assertEqual(result, expected)
+
+    def test_query_builder_with_no_other_database(self):
+        original_user = os.environ.get("USER")
+        os.environ["USER"] = "user"
+
+        table = "database.schema.table"
+        q1, q2 = _query_builder(
+            table=table,
+            other_database=None,
+        )
+        result = [line.strip() for line in q1.split("\n")]
+        result.extend([line.strip() for line in q2.split("\n")])
+        print(result)
+        expected = [
+            "",
+            "select * from database.schema.table",
+            "except",
+            "select * from dev_user_database.schema.table",
+            "",
+            "",
+            "select * from dev_user_database.schema.table",
+            "except",
+            "select * from database.schema.table",
+            "",
+        ]
+
+        os.environ["USER"] = original_user
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

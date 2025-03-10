@@ -1,5 +1,5 @@
 import os
-import sys
+from typing import Optional
 
 import pandas as pd
 import snowflake.connector
@@ -30,13 +30,21 @@ def _fetch_diff(prod_query, dev_query):
             return prod_df, dev_df
 
 
-def _query_builder(database, other_database, schema, table, primary_key):
-    return f"""
-    select * from {database}.{schema}.{table}
-    except
-    select  * from {other_database}.{schema}.{table}
-    order by {primary_key}
-    """
+def _query_builder(table: str, other_database: Optional[str] = None) -> list[str]:
+    database, schema, table = table.split(".")
+    other_database = other_database or f"dev_{os.environ['USER']}_{database}"
+    return [
+        f"""
+            select * from {database}.{schema}.{table}
+            except
+            select * from {other_database}.{schema}.{table}
+        """,
+        f"""
+            select * from {other_database}.{schema}.{table}
+            except
+            select * from {database}.{schema}.{table}
+        """,
+    ]
 
 
 def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
@@ -52,37 +60,25 @@ def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
     return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
 
-def table_diff(table, primary_key, compare_to=None, fetch_diff=_fetch_diff, ci=False):
-    database, schema, table = table.upper().split(".")
+def table_diff(table, primary_key, compare_to=None):
     primary_key = primary_key.upper()
-    compare_to = compare_to or f"dev_{os.environ['USER']}_{database}"
-    dev_database = compare_to
+    other_database = compare_to
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
 
-    prod_query = _query_builder(
-        database=database,
-        other_database=dev_database,
-        schema=schema,
+    prod_query, dev_query = _query_builder(
         table=table,
-        primary_key=primary_key,
-    )
-    dev_query = _query_builder(
-        database=dev_database,
-        other_database=database,
-        schema=schema,
-        table=table,
-        primary_key=primary_key,
+        other_database=other_database,
     )
 
     print("Running query:")
     print(prod_query)
-    print("")
+    print("and")
     print(dev_query)
     print("")
 
-    prod_df, dev_df = fetch_diff(prod_query=prod_query, dev_query=dev_query)
+    prod_df, dev_df = _fetch_diff(prod_query=prod_query, dev_query=dev_query)
 
     print(f"Prod: {len(prod_df)} rows")
     print(f"Dev: {len(dev_df)} rows")
@@ -99,9 +95,6 @@ def table_diff(table, primary_key, compare_to=None, fetch_diff=_fetch_diff, ci=F
         dev_name="dev",
         primary_key=primary_key,
     )
-
-    if ci:
-        return diff
 
     preview_diff = input("Preview diff? y/N:").lower() == "y"
     if preview_diff:
