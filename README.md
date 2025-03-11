@@ -37,10 +37,10 @@ pip install --upgrade vdl-cli
 
 ### Open project development environment
 
-Requires a setup_env.sh-file or a vdc_project.yaml-file (tba).
+Requires a Makefile with a 'install' command
 
 ```shell
-vdc
+o
 ```
 
 or
