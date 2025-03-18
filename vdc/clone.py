@@ -1,5 +1,6 @@
 import logging
 
+import snowflake.connector
 from snowflake.connector import DictCursor
 
 LOGGER = logging.getLogger(__file__)
