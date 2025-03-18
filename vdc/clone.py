@@ -1,4 +1,5 @@
 import logging
+import os
 
 import snowflake.connector
 from snowflake.connector import DictCursor
