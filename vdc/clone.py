@@ -1,8 +1,6 @@
 import logging
 
-# from permifrost.snowflake_connector import SnowflakeConnector
-import snowflake.connector
-
+from snowflake.connector import DictCursor
 
 LOGGER = logging.getLogger(__file__)
 
@@ -20,7 +18,7 @@ def _snow_config():
 class SnowflakeConnector:
     def __init__(self):
         with snowflake.connector.connect(**_snow_config()) as ctx:
-            self.cur = ctx.cursor()
+            self.cur = ctx.cursor(DictCursor)
 
     def run_query(self, query: str) -> list[str]:
         result = self.cur.execute(query)
