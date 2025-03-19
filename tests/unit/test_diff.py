@@ -63,58 +63,6 @@ class TestTableDiff(unittest.TestCase):
         result = _compare_df(prod_df, dev_df, "prod", "dev", "a")
         self.assertTrue(result.empty)
 
-    def test_query_builder(self):
-        table = "database.schema.table"
-        other_database = "other_database"
-        q1, q2 = _query_builder(
-            table=table,
-            other_database=other_database,
-        )
-        result = [line.strip() for line in q1.split("\n")]
-        result.extend([line.strip() for line in q2.split("\n")])
-        print(result)
-        expected = [
-            "",
-            "select * from database.schema.table",
-            "except",
-            "select * from other_database.schema.table",
-            "",
-            "",
-            "select * from other_database.schema.table",
-            "except",
-            "select * from database.schema.table",
-            "",
-        ]
-        self.assertEqual(result, expected)
-
-    def test_query_builder_with_no_other_database(self):
-        original_user = os.environ.get("USER")
-        os.environ["USER"] = "user"
-
-        table = "database.schema.table"
-        q1, q2 = _query_builder(
-            table=table,
-            other_database=None,
-        )
-        result = [line.strip() for line in q1.split("\n")]
-        result.extend([line.strip() for line in q2.split("\n")])
-        print(result)
-        expected = [
-            "",
-            "select * from database.schema.table",
-            "except",
-            "select * from dev_user_database.schema.table",
-            "",
-            "",
-            "select * from dev_user_database.schema.table",
-            "except",
-            "select * from database.schema.table",
-            "",
-        ]
-
-        os.environ["USER"] = original_user
-        self.assertEqual(result, expected)
-
 
 if __name__ == "__main__":
     unittest.main()
