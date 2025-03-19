@@ -91,8 +91,9 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
 
     prod_df, dev_df = _fetch_diff(prod_query=prod_query, dev_query=dev_query)
 
-    print(f"Prod: {len(prod_df)} rows")
-    print(f"Dev: {len(dev_df)} rows")
+    print("\nRows different or missing in other table:")
+    print(f"{table}:".ljust(45) + f"{len(prod_df)}".rjust(10) + " rows")
+    print(f"{compare_to}:".ljust(45) + f"{len(dev_df)}".rjust(10) + " rows")
     print("")
 
     if len(prod_df) == 0 and len(dev_df) == 0:
@@ -102,8 +103,8 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     diff = _compare_df(
         prod_df=prod_df,
         dev_df=dev_df,
-        prod_name="prod",
-        dev_name="dev",
+        prod_name=table,
+        dev_name=compare_to,
         primary_key=primary_key,
     )
 
