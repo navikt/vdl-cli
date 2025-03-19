@@ -30,17 +30,28 @@ def _fetch_diff(prod_query, dev_query):
             return prod_df, dev_df
 
 
-def _query_builder(table: str, compare_to: str) -> list[str]:
+def _query_builder(
+    table: str,
+    compare_to: str,
+    columns: Optional[tuple],
+    ignore_columns: Optional[tuple],
+    primary_key: str,
+) -> list[str]:
+    if columns:
+        columns = columns + (primary_key,)
+    cols = "*" if not columns else ", ".join(columns)
+    exclude_cols = None if not ignore_columns else ", ".join(ignore_columns)
+    selected_cols = f"{cols} exclude({exclude_cols})" if exclude_cols else cols
     return [
         f"""
-            select * from {table}
+            select {selected_cols} from {table}
             except
-            select * from {compare_to}
+            select {selected_cols} from {compare_to}
         """,
         f"""
-            select * from {compare_to}
+            select {selected_cols} from {compare_to}
             except
-            select * from {table}
+            select {selected_cols} from {table}
         """,
     ]
 
@@ -58,7 +69,7 @@ def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
     return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
 
-def table_diff(table, primary_key, compare_to):
+def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     primary_key = primary_key.upper()
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
@@ -67,6 +78,9 @@ def table_diff(table, primary_key, compare_to):
     prod_query, dev_query = _query_builder(
         table=table,
         compare_to=compare_to,
+        columns=columns,
+        ignore_columns=ignore_columns,
+        primary_key=primary_key,
     )
 
     print("Running query:")

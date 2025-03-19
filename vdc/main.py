@@ -37,7 +37,7 @@ def open(verbose):
 @click.argument("primary_key", nargs=1, required=True)
 @click.option(
     "--compare-to-db",
-    "-c",
+    "-d",
     help="Database you want to compare against. Default is dev_<user>_<db> where <user> is your username and <db> is the database of the provided table",
 )
 @click.option(
@@ -50,7 +50,17 @@ def open(verbose):
     "-t",
     help="Table you want to compare against. Default is same as provided table",
 )
-def diff(table, primary_key, compare_to_db, compare_to_schema, compare_to_table):
+@click.option("--column", "-c", multiple=True, help="Only compare column")
+@click.option("--ignore-column", "-i", multiple=True, help="Ignore column")
+def diff(
+    table,
+    primary_key,
+    compare_to_db,
+    compare_to_schema,
+    compare_to_table,
+    column,
+    ignore_column,
+):
     from vdc.diff import table_diff
 
     full_table_name = table
@@ -60,4 +70,10 @@ def diff(table, primary_key, compare_to_db, compare_to_schema, compare_to_table)
     compare_to_table = compare_to_table or table
     compare_to = f"{compare_to_db}.{compare_to_schema}.{compare_to_table}"
 
-    table_diff(full_table_name, primary_key, compare_to)
+    table_diff(
+        table=full_table_name,
+        primary_key=primary_key,
+        compare_to=compare_to,
+        columns=column,
+        ignore_columns=ignore_column,
+    )
