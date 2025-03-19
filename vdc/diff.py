@@ -30,19 +30,17 @@ def _fetch_diff(prod_query, dev_query):
             return prod_df, dev_df
 
 
-def _query_builder(table: str, other_database: Optional[str] = None) -> list[str]:
-    database, schema, table = table.split(".")
-    other_database = other_database or f"dev_{os.environ['USER']}_{database}"
+def _query_builder(table: str, compare_to: str) -> list[str]:
     return [
         f"""
-            select * from {database}.{schema}.{table}
+            select * from {table}
             except
-            select * from {other_database}.{schema}.{table}
+            select * from {compare_to}
         """,
         f"""
-            select * from {other_database}.{schema}.{table}
+            select * from {compare_to}
             except
-            select * from {database}.{schema}.{table}
+            select * from {table}
         """,
     ]
 
@@ -60,16 +58,15 @@ def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
     return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
 
-def table_diff(table, primary_key, compare_to=None):
+def table_diff(table, primary_key, compare_to):
     primary_key = primary_key.upper()
-    other_database = compare_to
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
 
     prod_query, dev_query = _query_builder(
         table=table,
-        other_database=other_database,
+        compare_to=compare_to,
     )
 
     print("Running query:")
