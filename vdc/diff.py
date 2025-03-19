@@ -48,8 +48,8 @@ def _query_builder(table: str, other_database: Optional[str] = None) -> list[str
 
 
 def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
-    prod_df = prod_df.set_index(primary_key)
-    dev_df = dev_df.set_index(primary_key)
+    prod_df = prod_df.set_index(primary_key).sort_index()
+    dev_df = dev_df.set_index(primary_key).sort_index()
 
     prod_diff = prod_df.index.difference(dev_df.index)
     dev_diff = dev_df.index.difference(prod_df.index)

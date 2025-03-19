@@ -56,6 +56,13 @@ class TestTableDiff(unittest.TestCase):
         ).set_index(["a", "result_name"])
         self.assertTrue(result.equals(expected))
 
+    def test_compare_df_not_sorted_by_primary_key(self):
+        prod_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        dev_df = pd.DataFrame({"a": [3, 1, 2], "b": [6, 4, 5]})
+
+        result = _compare_df(prod_df, dev_df, "prod", "dev", "a")
+        self.assertTrue(result.empty)
+
     def test_query_builder(self):
         table = "database.schema.table"
         other_database = "other_database"
