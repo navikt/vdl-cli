@@ -1,6 +1,6 @@
 # vdl-cli
 
-CLI tooling for Data engineers
+CLI tooling for Data engineers. See [commands](./COMMANDS.md) for usage documentation.
 
 ## Installation
 
@@ -31,41 +31,6 @@ pip install "vdl-cli[all] @ git+https://github.com/navikt/vdl-cli@<version>"
 
 ```shell
 pip install --upgrade vdl-cli
-```
-
-## Usage
-
-### Open project development environment
-
-Requires a Makefile with a 'install' command
-
-```shell
-o
-```
-
-or
-
-```shell
-vdc open
-```
-
-### Check diff for a table between the dev- and prod-database
-
-**Requirements**
-
-* The full installation of vdc
-* Sysadmin priveleges in snowflake
-
-This command vill compare the table with the equivalent table in you're dev-database and give you a brief summary in the cli with the option to export the result to excel.
-
-```shell
-vdc diff <table> <primary_key>
-```
-
-Example:
-
-```shell
-vdc diff prod.marts.my_table pk_my_table
 ```
 
 ## Release
