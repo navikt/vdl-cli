@@ -269,7 +269,7 @@ def setup_env():
             prod_target_database = dbt_targets["prod"]["database"]
             replace_selected_database = (
                 input(
-                    f"Do you want to replace database '{selected_database}' with a clone of database '{prod_target_database}' and give usage to role '{selected_role}'? y/N: "
+                    f"\nReplace database '{selected_database}'\nwith a clone of database '{prod_target_database}'\nand give usage to role '{selected_role}'? y/N: "
                 ).lower()
                 == "y"
             )
