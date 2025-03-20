@@ -21,14 +21,14 @@ def open(verbose):
     setup_env()
 
 
-# @cli.command()
-# @click.argument("db", nargs=1, required=True)
-# @click.argument("to", nargs=1, required=True)
-# @click.option("--usage", "-u", multiple=True, help="Grant usage to role")
-# def clone(db, to, usage):
-#    from vdc.clone import create_db_clone
-#
-#    create_db_clone(src=db, dst=to, usage=usage)
+@cli.command()
+@click.argument("db", nargs=1, required=True)
+@click.argument("to", nargs=1, required=True)
+@click.option("--usage", "-u", multiple=True, help="Grant usage to role")
+def clone(db, to, usage):
+    from vdc.clone import create_db_clone
+
+    create_db_clone(src=db, dst=to, usage=usage)
 
 
 @cli.command()
