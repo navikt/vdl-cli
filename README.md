@@ -4,9 +4,9 @@ CLI tooling for Data engineers. See [commands](./COMMANDS.md) for usage document
 
 ## Installation
 
-### Bare installation only for `open` command
+### Bare installation, only for `open` command
 
-Should be installed in the global python intepreter.
+Needs to be installed in the global python intepreter. So you can use it outside of an 'venv'.
 
 ```shell
 pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
@@ -18,10 +18,9 @@ Example:
 pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
 ```
 
-
 ### Full installation for diff, clone etc.
 
-This should in most cases only be installed as dependency in the project environment.
+This should in most cases only be installed as a dependency in the project environment.
 
 ```shell
 pip install "vdl-cli[all] @ git+https://github.com/navikt/vdl-cli@<version>"
