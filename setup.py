@@ -5,9 +5,10 @@ with open("README.md", "r") as f:
 
 setup(
     name="vdl-cli",
-    version="0.1.12",
+    version="0.1.13",
     description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
+    package_data={"vdc": ["vdc/banner.txt"]},
     author="NAV IT Virksomhetsdatalaget",
     author_email="virksomhetsdatalaget@nav.no",
     url="https://github.com/navikt/vdl-regnskapsdata/tree/main/vdl-cli",
