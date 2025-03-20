@@ -19,15 +19,14 @@ def _snow_config():
 
 class SnowflakeConnector:
     def __init__(self):
-        with snowflake.connector.connect(**_snow_config()) as ctx:
-            self.cur = ctx.cursor(DictCursor)
+        self.cur = snowflake.connector.connect(**_snow_config()).cursor(DictCursor)
 
     def run_query(self, query: str) -> list[str]:
         result = self.cur.execute(query)
         return result
 
 
-def create_db_clone(src: str, dst: str, usage: tuple[str]):
+def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
     prod_db = src
     clone_db = dst
 
