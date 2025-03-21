@@ -15,6 +15,10 @@ install:
 docs:
 	${PY} generate_doc.py
 
+.PHONY: release ## publish new release
+release:
+	./release.sh
+
 start-colima:
 	colima start --arch x86_64 --memory 6
 
