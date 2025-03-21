@@ -6,7 +6,7 @@ CLI tooling for Data engineers. See [commands](./COMMANDS.md) for usage document
 
 ### Bare installation, only for `open` command
 
-Needs to be installed in the global python intepreter. So you can use it outside of an 'venv'.
+Needs to be installed in the global python intepreter so you can use it outside of an 'venv'.
 
 ```shell
 pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
