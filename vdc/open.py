@@ -210,6 +210,11 @@ def setup_env():
         if not requirements_lock_packages.issubset(envrionment_packages):
             echo("Environment does not match requirements-lock.txt.")
             _install_environment()
+            freeze_output = subprocess.run(
+                [".venv/bin/pip", "freeze"],
+                capture_output=True,
+            )
+            environment_content = freeze_output.stdout.decode(encoding="utf-8")
         else:
             LOGGER.info("Environment matches requirements-lock.txt")
         print("")
