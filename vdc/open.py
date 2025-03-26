@@ -338,6 +338,7 @@ def setup_env():
 
             if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
                 prod_target_database = dbt_targets["prod"]["database"]
+                _validate_dbt_database(prod_target_database)
                 replace_selected_database = (
                     input(
                         f"\nReplace database '{selected_database}'\nwith a clone of database '{prod_target_database}'\nand give usage to role '{selected_role}'? y/N: "
