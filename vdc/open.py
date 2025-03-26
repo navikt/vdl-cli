@@ -43,7 +43,11 @@ def _validate_target(targets, default_targets):
         return ValueError(
             "dbt target outputs for dev and prod should exist in dbt profiles.yml"
         )
-    databases = [targets[target]["database"] for target in default_targets]
+    try:
+        databases = [targets[target]["database"] for target in default_targets]
+    except TypeError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target database found. {e}")
+        exit(1)
     if len(set(databases)) != len(databases):
         return ValueError(
             f"{' and '.join(default_targets)} should have different databases in dbt profiles.yml"
@@ -58,6 +62,18 @@ def _validate_target(targets, default_targets):
             f"DBT_TARGET={existing_target} is not a valid target. Use one of {', '.join(default_targets)}"
         )
 
+    try:
+        roles = [targets[target]["role"] for target in default_targets]
+    except KeyError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target role found. {e}")
+        exit(1)
+
+    try:
+        users = [targets[target]["user"] for target in default_targets]
+    except KeyError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target user found. {e}")
+        exit(1)
+
     return None
 
 
@@ -71,13 +87,35 @@ def _print_banner():
 
 def _get_dbt_targets(project_file, profile_file):
 
-    project = yaml.safe_load(project_file.read_text())
+    try:
+        project = yaml.safe_load(project_file.read_text())
+        profile_name = project["profile"]
+        profiles = yaml.safe_load(_render_template(profile_file.read_text()))
+        project_profile = profiles[profile_name]
+    except TypeError as e:
+        LOGGER.error(
+            f"Error loading dbt project file or profile file. No profile found. {e}"
+        )
+        exit(1)
+    except KeyError as e:
+        LOGGER.error(f"Error loading profile file. Profile not found. {e}")
+        exit(1)
+    except Exception as e:
+        LOGGER.error(f"Error loading dbt project file or profile file. {e}")
+        exit(1)
 
-    profile_name = project["profile"]
-    profiles = yaml.safe_load(_render_template(profile_file.read_text()))
-    project_profile = profiles[profile_name]
+    try:
+        targets = project_profile["outputs"]
+    except TypeError as e:
+        LOGGER.error(f"Error loading profile file. Outputs not found. {e}")
+        exit(1)
+    except Exception as e:
+        LOGGER.error(f"Error loading dbt profile file. {e}")
+        exit(1)
 
-    targets = project_profile["outputs"]
+    if targets is None:
+        LOGGER.error("No dbt target outputs found in dbt profiles.yml")
+        exit(1)
 
     return targets
 
@@ -96,9 +134,23 @@ def _validate_file(file):
         exit(1)
     LOGGER.info(f"Found file: {file}")
 
+def _validate_dbt_database(database):
+    if database is None:
+        LOGGER.error(
+            "\ndbt target database is not defined in dbt profiles.yml. Please define a database for the target\n"
+        )
+        exit(1)
+
+def _validate_dbt_role(role):
+    if role is None:
+        LOGGER.error(
+            "\ndbt target role is not defined in dbt profiles.yml. Please define a role for the target\n"
+        )
+        exit(1)
+
 
 def _validate_dbt_user(user):
-    if user == "None":
+    if user is None:
         LOGGER.error(
             "\ndbt target user is not defined in dbt profiles.yml. Please define a user for the target\n"
         )
@@ -234,59 +286,74 @@ def setup_env():
         LOGGER.warning(
             "dbt-core or dbt-snowflake is not installed in environment. Skipping setup"
         )
-        continue_witouth_dbt = (
+        continue_without_dbt = (
             input("Are you sure you want to continue? Y/n: ").lower() != "n"
         )
-        if not continue_witouth_dbt:
+        if not continue_without_dbt:
             exit(0)
 
     if dbt_is_installed:
         LOGGER.info("Found dbt in environment")
         dbt_project_file = Path("dbt/dbt_project.yml")
-        _validate_file(dbt_project_file)
         profile_file = Path("dbt/profiles.yml")
-        _validate_file(profile_file)
+        dbt_files_exist = dbt_project_file.exists() and profile_file.exists()
 
-        default_dbt_targets = ["dev", "prod"]
-        dbt_targets = _get_dbt_targets(
-            project_file=dbt_project_file,
-            profile_file=profile_file,
-        )
-        _validate_dbt_targets(targets=dbt_targets, default_targets=default_dbt_targets)
-
-        echo("Select dbt target output")
-        selected_target = _selector(default_dbt_targets)
-        selected_dbt_target = dbt_targets[selected_target]
-        selected_database = selected_dbt_target["database"]
-        selected_role = selected_dbt_target["role"]
-        selected_user = selected_dbt_target["user"]
-
-        _validate_dbt_user(selected_user)
-
-        os.environ["DBT_TARGET"] = selected_target
-
-        LOGGER.info(f"Selected target username: {selected_user}")
-        LOGGER.info(f"Selected target database: {selected_database}")
-        LOGGER.info(f"Selected target role: {selected_role}")
-        LOGGER.info("\ndbt setup is done\n")
-
-        if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
-            prod_target_database = dbt_targets["prod"]["database"]
-            replace_selected_database = (
-                input(
-                    f"\nReplace database '{selected_database}'\nwith a clone of database '{prod_target_database}'\nand give usage to role '{selected_role}'? y/N: "
-                ).lower()
-                == "y"
+        if not dbt_files_exist:
+            LOGGER.warning(
+                "dbt-core and dbt-snowflake are installed in environment, but could not find dbt_project.yml and/or profiles.yml.\nSkipping setup"
             )
-            if replace_selected_database:
-                echo(
-                    f"Replacing {selected_database} with a clone of {prod_target_database}"
+            continue_without_dbt = (
+                input("Are you sure you want to continue? Y/n: ").lower() != "n"
+            )
+            if not continue_without_dbt:
+                exit(0)
+
+        if dbt_files_exist:
+            default_dbt_targets = ["dev", "prod"]
+            dbt_targets = _get_dbt_targets(
+                project_file=dbt_project_file,
+                profile_file=profile_file,
+            )
+            _validate_dbt_targets(
+                targets=dbt_targets, default_targets=default_dbt_targets
+            )
+
+            echo("Select dbt target output")
+            selected_target = _selector(default_dbt_targets)
+            selected_dbt_target = dbt_targets[selected_target]
+            selected_database = selected_dbt_target["database"]
+            selected_role = selected_dbt_target["role"]
+            selected_user = selected_dbt_target["user"]
+
+            _validate_dbt_database(selected_database)
+            _validate_dbt_role(selected_role)
+            _validate_dbt_user(selected_user)
+
+            os.environ["DBT_TARGET"] = selected_target
+
+            LOGGER.info(f"Selected target username: {selected_user}")
+            LOGGER.info(f"Selected target database: {selected_database}")
+            LOGGER.info(f"Selected target role: {selected_role}")
+            LOGGER.info("\ndbt setup is done\n")
+
+            if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
+                prod_target_database = dbt_targets["prod"]["database"]
+                _validate_dbt_database(prod_target_database)
+                replace_selected_database = (
+                    input(
+                        f"\nReplace database '{selected_database}'\nwith a clone of database '{prod_target_database}'\nand give usage to role '{selected_role}'? y/N: "
+                    ).lower()
+                    == "y"
                 )
-                _replace_dev_database(
-                    prod_target_database=prod_target_database,
-                    selected_database=selected_database,
-                    selected_role=selected_role,
-                )
+                if replace_selected_database:
+                    echo(
+                        f"Replacing {selected_database} with a clone of {prod_target_database}"
+                    )
+                    _replace_dev_database(
+                        prod_target_database=prod_target_database,
+                        selected_database=selected_database,
+                        selected_role=selected_role,
+                    )
 
     echo("Launching vscode")
     subprocess.run("source .venv/bin/activate && code .", shell=True)
