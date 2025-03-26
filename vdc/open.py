@@ -43,7 +43,11 @@ def _validate_target(targets, default_targets):
         return ValueError(
             "dbt target outputs for dev and prod should exist in dbt profiles.yml"
         )
-    databases = [targets[target]["database"] for target in default_targets]
+    try:
+        databases = [targets[target]["database"] for target in default_targets]
+    except TypeError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target database found. {e}")
+        exit(1)
     if len(set(databases)) != len(databases):
         return ValueError(
             f"{' and '.join(default_targets)} should have different databases in dbt profiles.yml"
@@ -57,6 +61,18 @@ def _validate_target(targets, default_targets):
         return ValueError(
             f"DBT_TARGET={existing_target} is not a valid target. Use one of {', '.join(default_targets)}"
         )
+
+    try:
+        roles = [targets[target]["role"] for target in default_targets]
+    except KeyError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target role found. {e}")
+        exit(1)
+
+    try:
+        users = [targets[target]["user"] for target in default_targets]
+    except KeyError as e:
+        LOGGER.error(f"Error loading dbt profile file. No target user found. {e}")
+        exit(1)
 
     return None
 
@@ -77,7 +93,9 @@ def _get_dbt_targets(project_file, profile_file):
         profiles = yaml.safe_load(_render_template(profile_file.read_text()))
         project_profile = profiles[profile_name]
     except TypeError as e:
-        LOGGER.error(f"Error loading dbt project file or profile file. No profile found. {e}")
+        LOGGER.error(
+            f"Error loading dbt project file or profile file. No profile found. {e}"
+        )
         exit(1)
     except KeyError as e:
         LOGGER.error(f"Error loading profile file. Profile not found. {e}")
@@ -94,7 +112,7 @@ def _get_dbt_targets(project_file, profile_file):
     except Exception as e:
         LOGGER.error(f"Error loading dbt profile file. {e}")
         exit(1)
-    
+
     if targets is None:
         LOGGER.error("No dbt target outputs found in dbt profiles.yml")
         exit(1)
@@ -116,9 +134,23 @@ def _validate_file(file):
         exit(1)
     LOGGER.info(f"Found file: {file}")
 
+def _validate_dbt_database(database):
+    if database is None:
+        LOGGER.error(
+            "\ndbt target database is not defined in dbt profiles.yml. Please define a database for the target\n"
+        )
+        exit(1)
+
+def _validate_dbt_role(role):
+    if role is None:
+        LOGGER.error(
+            "\ndbt target role is not defined in dbt profiles.yml. Please define a role for the target\n"
+        )
+        exit(1)
+
 
 def _validate_dbt_user(user):
-    if user == "None":
+    if user is None:
         LOGGER.error(
             "\ndbt target user is not defined in dbt profiles.yml. Please define a user for the target\n"
         )
@@ -293,6 +325,8 @@ def setup_env():
             selected_role = selected_dbt_target["role"]
             selected_user = selected_dbt_target["user"]
 
+            _validate_dbt_database(selected_database)
+            _validate_dbt_role(selected_role)
             _validate_dbt_user(selected_user)
 
             os.environ["DBT_TARGET"] = selected_target
