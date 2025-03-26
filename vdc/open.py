@@ -71,13 +71,33 @@ def _print_banner():
 
 def _get_dbt_targets(project_file, profile_file):
 
-    project = yaml.safe_load(project_file.read_text())
+    try:
+        project = yaml.safe_load(project_file.read_text())
+        profile_name = project["profile"]
+        profiles = yaml.safe_load(_render_template(profile_file.read_text()))
+        project_profile = profiles[profile_name]
+    except TypeError as e:
+        LOGGER.error(f"Error loading dbt project file or profile file. No profile found. {e}")
+        exit(1)
+    except KeyError as e:
+        LOGGER.error(f"Error loading profile file. Profile not found. {e}")
+        exit(1)
+    except Exception as e:
+        LOGGER.error(f"Error loading dbt project file or profile file. {e}")
+        exit(1)
 
-    profile_name = project["profile"]
-    profiles = yaml.safe_load(_render_template(profile_file.read_text()))
-    project_profile = profiles[profile_name]
-
-    targets = project_profile["outputs"]
+    try:
+        targets = project_profile["outputs"]
+    except TypeError as e:
+        LOGGER.error(f"Error loading profile file. Outputs not found. {e}")
+        exit(1)
+    except Exception as e:
+        LOGGER.error(f"Error loading dbt profile file. {e}")
+        exit(1)
+    
+    if targets is None:
+        LOGGER.error("No dbt target outputs found in dbt profiles.yml")
+        exit(1)
 
     return targets
 
