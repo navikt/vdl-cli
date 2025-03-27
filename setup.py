@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="vdl-cli",
-    version="0.1.16",
+    version="0.1.17",
     description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
     package_data={"vdc": ["banner.txt"]},
