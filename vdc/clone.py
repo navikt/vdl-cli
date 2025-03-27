@@ -1,11 +1,32 @@
 import logging
+import os
 
-from permifrost.snowflake_connector import SnowflakeConnector
+import snowflake.connector
+from snowflake.connector import DictCursor
 
 LOGGER = logging.getLogger(__file__)
 
 
-def create_db_clone(src: str, dst: str, usage: tuple[str]):
+def _snow_config():
+    return {
+        "user": os.environ["DBT_USR"],
+        "authenticator": "externalbrowser",
+        "account": "wx23413.europe-west4.gcp",
+        "role": "sysadmin",
+        "warehouse": "dev__xs",
+    }
+
+
+class SnowflakeConnector:
+    def __init__(self):
+        self.cur = snowflake.connector.connect(**_snow_config()).cursor(DictCursor)
+
+    def run_query(self, query: str) -> list[str]:
+        result = self.cur.execute(query)
+        return result
+
+
+def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
     prod_db = src
     clone_db = dst
 
