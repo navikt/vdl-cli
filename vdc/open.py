@@ -233,11 +233,14 @@ def setup_env():
     _print_banner()
     LOGGER.info("Validating project configuration\n")
 
-    makefile = Path("Makefile")
-    _validate_file(makefile)
-
     _validate_program("code")
-    _validate_program("make")
+
+    taskfile = Path("taskfile.dist.yaml")
+    if not taskfile.exists():
+        LOGGER.warning("taskfile.dist.yaml not found. Using make instead of task")
+        _validate_program("make")
+        makefile = Path("Makefile")
+        _validate_file(makefile)
 
     LOGGER.info("Setting up environment")
     pip_file = Path(".venv/bin/pip")

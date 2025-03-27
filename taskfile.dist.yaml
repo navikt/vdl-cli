@@ -1,0 +1,32 @@
+version: '3'
+
+vars:
+  PY: ".venv/bin/python"
+  GLOBAL_PY: "python3.11"
+
+
+tasks:
+  default:
+    cmds:
+      - task -a
+    silent: true
+  install:
+    cmds:
+      - rm -rf .venv
+      - "{{.GLOBAL_PY}} -m venv .venv"
+      - "{{.PY}} -m pip install --upgrade pip"
+      - "{{.PY}} -m pip install -e .[dev,all]"
+#    preconditions:
+#      - command -v {{.GLOBAL_PY}}
+  docs:
+    cmds:
+      - "{{.PY}} generate_doc.py"
+#    preconditions:
+#      - "test -f {{.PY}}"
+  release:
+    cmds:
+      - ./release.sh
+#    preconditions:
+#      - "test -f release.sh"
+#      - command -v git
+#      - command -v gh
