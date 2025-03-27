@@ -4,32 +4,22 @@ CLI tooling for Data engineers. See [commands](./COMMANDS.md) for usage document
 
 ## Installation
 
-### Bare installation, only for `open` command
-
-Needs to be installed in the global python intepreter so you can use it outside of an 'venv'.
+Recommended to be installed via `pipx` or `uvx`. See [installing uv](https://docs.astral.sh/uv/getting-started/installation/#installing-uv).
 
 ```shell
-pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
+uvx install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
 ```
 
 Example:
 
 ```shell
-pip install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
-```
-
-### Full installation for diff, clone etc.
-
-This should in most cases only be installed as a dependency in the project environment.
-
-```shell
-pip install "vdl-cli[all] @ git+https://github.com/navikt/vdl-cli@<version>"
+uvx install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
 ```
 
 ## Upgrading
 
 ```shell
-pip install --upgrade vdl-cli
+uvx install --upgrade vdl-cli
 ```
 
 ## Release

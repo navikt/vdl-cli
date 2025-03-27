@@ -9,7 +9,7 @@ install:
 	rm -rf .venv
 	python3.11 -m venv .venv && \
 		${PY} -m pip install --upgrade pip && \
-		${PY} -m pip install -e .[dev,all]
+		${PY} -m pip install -e .
 
 .PHONY: docs ## generate documentation
 docs:

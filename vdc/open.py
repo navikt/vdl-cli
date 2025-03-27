@@ -5,10 +5,10 @@ from pathlib import Path
 from shutil import which
 
 import yaml
-from alive_progress import alive_bar
 from click import clear, echo
 from jinja2 import Environment
 
+from vdc.clone import create_db_clone
 from vdc.utils import _spinner
 
 LOGGER = logging.getLogger(__name__)
@@ -134,12 +134,14 @@ def _validate_file(file):
         exit(1)
     LOGGER.info(f"Found file: {file}")
 
+
 def _validate_dbt_database(database):
     if database is None:
         LOGGER.error(
             "\ndbt target database is not defined in dbt profiles.yml. Please define a database for the target\n"
         )
         exit(1)
+
 
 def _validate_dbt_role(role):
     if role is None:
@@ -184,48 +186,11 @@ def _replace_dev_database(prod_target_database, selected_database, selected_role
         prod_target_database != selected_database
     )  # should not happen because of validate_target
 
-    snowbird_command = [
-        ".venv/bin/snowbird",
-        "clone",
-        prod_target_database,
-        selected_database,
-        "--usage",
-        selected_role,
-    ]
-    with _spinner("Replacing database"):
-        replace_database_output = subprocess.run(snowbird_command, capture_output=True)
-
-    if replace_database_output.returncode != 0:
-        print("Failed to replace database")
-        exit(1)
+    create_db_clone(
+        src=prod_target_database, dst=selected_database, usage=(selected_role,)
+    )
     print("Database replaced")
     print("")
-
-
-def _setup_snowbird(config=None):
-    config = config or {
-        "user": os.environ["DBT_USR"],
-        "account": "wx23413.europe-west4.gcp",
-        "warehouse": "dev__xs",
-        "database": "test_db",
-        "role": "securityadmin",
-        "authenticator": "externalbrowser",
-    }
-
-    selected_user = config["user"]
-    os.environ["PERMISSION_BOT_USER"] = selected_user
-    selected_account = config["account"]
-    os.environ["PERMISSION_BOT_ACCOUNT"] = selected_account
-    selected_warehouse = config["warehouse"]
-    os.environ["PERMISSION_BOT_WAREHOUSE"] = selected_warehouse
-    selected_database = config["database"]
-    os.environ["PERMISSION_BOT_DATABASE"] = selected_database
-    selected_role = config["role"]
-    os.environ["PERMISSION_BOT_ROLE"] = selected_role
-    selected_authenticator = config["authenticator"]
-    os.environ["PERMISSION_BOT_AUTHENTICATOR"] = selected_authenticator
-
-    return config
 
 
 def setup_env():
@@ -270,16 +235,6 @@ def setup_env():
         else:
             LOGGER.info("Environment matches requirements-lock.txt")
         print("")
-
-    snowbird_is_installed = "snowbird" in environment_content
-    if not snowbird_is_installed:
-        LOGGER.warning("snowbird is not installed in environment. Skipping setup")
-    if snowbird_is_installed:
-        LOGGER.info("Found snowbird in environment")
-        LOGGER.info("Setting up snowbird")
-        snowbird_config = _setup_snowbird()
-        LOGGER.info("snobird config:")
-        LOGGER.info(snowbird_config)
 
     dbt_is_installed = "dbt-core" and "dbt-snowflake" in environment_content
     if not dbt_is_installed:
@@ -336,7 +291,7 @@ def setup_env():
             LOGGER.info(f"Selected target role: {selected_role}")
             LOGGER.info("\ndbt setup is done\n")
 
-            if dbt_is_installed and snowbird_is_installed and selected_target != "prod":
+            if selected_target != "prod":
                 prod_target_database = dbt_targets["prod"]["database"]
                 _validate_dbt_database(prod_target_database)
                 replace_selected_database = (
