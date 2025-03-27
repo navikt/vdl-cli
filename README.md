@@ -7,19 +7,19 @@ CLI tooling for Data engineers. See [commands](./COMMANDS.md) for usage document
 Recommended to be installed via `pipx` or `uvx`. See [installing uv](https://docs.astral.sh/uv/getting-started/installation/#installing-uv).
 
 ```shell
-uvx install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
+uv tool install "vdl-cli @ git+https://github.com/navikt/vdl-cli@<version>"
 ```
 
 Example:
 
 ```shell
-uvx install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
+uv tool install "vdl-cli @ git+https://github.com/navikt/vdl-cli@v0.1"
 ```
 
 ## Upgrading
 
 ```shell
-uvx install --upgrade vdl-cli
+uv tool upgrade vdl-cli
 ```
 
 ## Release
