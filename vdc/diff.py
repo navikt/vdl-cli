@@ -3,6 +3,7 @@ from typing import Optional
 
 import pandas as pd
 import snowflake.connector
+from snowflake.connector import DictCursor
 
 from vdc.utils import _spinner
 
@@ -36,22 +37,47 @@ def _query_builder(
     columns: Optional[tuple],
     ignore_columns: Optional[tuple],
     primary_key: str,
+    table_desc: list[dict],
+    compare_to_desc: list[dict],
 ) -> list[str]:
+    unique_columns = None
     if columns:
-        columns = columns + (primary_key,)
-    cols = "*" if not columns else ", ".join(columns)
-    exclude_cols = None if not ignore_columns else ", ".join(ignore_columns)
-    selected_cols = f"{cols} exclude({exclude_cols})" if exclude_cols else cols
+        unique_columns = set(columns + (primary_key,))
+    cols = "*" if not unique_columns else ", ".join(unique_columns)
+    exclude_cols_table = None
+    exclude_cols_compare_to = None
+    if ignore_columns:
+        exclude_cols_table = set()
+        exclude_cols_compare_to = set()
+        table_column = [t["name"].lower() for t in table_desc]
+        compare_to_column = [t["name"].lower() for t in compare_to_desc]
+        for col in ignore_columns:
+            col = col.lower()
+            if col in table_column:
+                exclude_cols_table.add(col)
+            if col in compare_to_column:
+                exclude_cols_compare_to.add(col)
+        exclude_cols_table = ", ".join(exclude_cols_table)
+        exclude_cols_compare_to = ", ".join(exclude_cols_compare_to)
+
+    selected_cols_table = (
+        f"{cols} exclude({exclude_cols_table})" if exclude_cols_table else cols
+    )
+    selected_cols_compare_to = (
+        f"{cols} exclude({exclude_cols_compare_to})"
+        if exclude_cols_compare_to
+        else cols
+    )
     return [
         f"""
-            select {selected_cols} from {table}
+            select {selected_cols_table} from {table}
             except
-            select {selected_cols} from {compare_to}
+            select {selected_cols_compare_to} from {compare_to}
         """,
         f"""
-            select {selected_cols} from {compare_to}
+            select {selected_cols_compare_to} from {compare_to}
             except
-            select {selected_cols} from {table}
+            select {selected_cols_table} from {table}
         """,
     ]
 
@@ -69,18 +95,28 @@ def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
     return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
 
+def _desc(table: str) -> list[dict]:
+    with snowflake.connector.connect(**_snow_config()) as ctx:
+        cur = ctx.cursor(DictCursor)
+        cur.execute(f"desc table {table}")
+        return cur.fetchall()
+
+
 def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     primary_key = primary_key.upper()
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
-
+    table_desc = _desc(table=table)
+    compare_to_desc = _desc(table=compare_to)
     prod_query, dev_query = _query_builder(
         table=table,
         compare_to=compare_to,
         columns=columns,
         ignore_columns=ignore_columns,
         primary_key=primary_key,
+        table_desc=table_desc,
+        compare_to_desc=compare_to_desc,
     )
 
     print("Running query:")
