@@ -40,45 +40,21 @@ def _query_builder(
     table_desc: list[dict],
     compare_to_desc: list[dict],
 ) -> list[str]:
-    unique_columns = None
+    table_column = set(t["name"].lower() for t in table_desc)
+    compare_to_column = set(t["name"].lower() for t in compare_to_desc)
+    unique_columns = table_column.intersection(compare_to_column)
     if columns:
-        unique_columns = set(columns + (primary_key,))
-    cols = "*" if not unique_columns else ", ".join(unique_columns)
-    exclude_cols_table = None
-    exclude_cols_compare_to = None
-    if ignore_columns:
-        exclude_cols_table = set()
-        exclude_cols_compare_to = set()
-        table_column = [t["name"].lower() for t in table_desc]
-        compare_to_column = [t["name"].lower() for t in compare_to_desc]
-        for col in ignore_columns:
-            col = col.lower()
-            if col in table_column:
-                exclude_cols_table.add(col)
-            if col in compare_to_column:
-                exclude_cols_compare_to.add(col)
-        exclude_cols_table = ", ".join(exclude_cols_table)
-        exclude_cols_compare_to = ", ".join(exclude_cols_compare_to)
+        columns = tuple(c.lower() for c in columns)
+        unique_columns = set(columns + (primary_key.lower(),))
 
-    selected_cols_table = (
-        f"{cols} exclude({exclude_cols_table})" if exclude_cols_table else cols
-    )
-    selected_cols_compare_to = (
-        f"{cols} exclude({exclude_cols_compare_to})"
-        if exclude_cols_compare_to
-        else cols
-    )
+    if ignore_columns:
+        ignore_columns = tuple(c.lower() for c in ignore_columns)
+        unique_columns = unique_columns - set(ignore_columns)
+
+    cols = ",\n".join(unique_columns)
     return [
-        f"""
-            select {selected_cols_table} from {table}
-            except
-            select {selected_cols_compare_to} from {compare_to}
-        """,
-        f"""
-            select {selected_cols_compare_to} from {compare_to}
-            except
-            select {selected_cols_table} from {table}
-        """,
+        f"select\n{cols}\nfrom {table}\nexcept\nselect\n{cols}\nfrom {compare_to}",
+        f"select\n{cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}",
     ]
 
 
