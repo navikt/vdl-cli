@@ -8,6 +8,7 @@ Options:
   --help         Show this message and exit.
 
 Commands:
+  clone
   diff
   open
 
@@ -16,6 +17,12 @@ Usage: vdc open [OPTIONS]
 Options:
   --verbose  Print verbose output
   --help     Show this message and exit.
+
+Usage: vdc clone [OPTIONS] DB TO
+
+Options:
+  -u, --usage TEXT  Grant usage to role
+  --help            Show this message and exit.
 
 Usage: vdc diff [OPTIONS] TABLE PRIMARY_KEY
 
