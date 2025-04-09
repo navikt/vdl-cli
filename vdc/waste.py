@@ -13,10 +13,9 @@ from vdc.utils import _validate_program, config
 
 
 def _snow_connection():
-    config_sso = {"role": "sysadmin"}
-    config_sso.update(config["snowflake"])
+    snowflake_config = config["snowflake"]
 
-    return snowflake.connector.connect(**config_sso).cursor(DictCursor)
+    return snowflake.connector.connect(**snowflake_config).cursor(DictCursor)
 
 
 def _create_dbt_manifest(
