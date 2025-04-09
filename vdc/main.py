@@ -12,7 +12,7 @@ vdc_version = version("vdl-cli")
 config = {
     "snowflake": {
         "account": os.getenv("SNOWFLAKE_ACCOUNT", "wx23413.europe-west4.gcp"),
-        "user": os.getenv("SNOWFLAKE_USER") or os.environ["DBT_USR"],
+        "user": os.getenv("SNOWFLAKE_USER") or os.getenv("DBT_USR"),
         "password": os.getenv("SNOWFLAKE_PASSWORD"),
         "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "dev__xs"),
         "authenticator": os.getenv("SNOWFLAKE_AUTHENTICATOR", "externalbrowser"),
