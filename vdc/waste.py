@@ -9,17 +9,12 @@ import snowflake.connector
 from questionary import Choice
 from snowflake.connector import DictCursor
 
-from vdc.utils import _validate_program
+from vdc.utils import _validate_program, config
 
 
 def _snow_connection():
-    config_sso = {
-        "user": os.environ["DBT_USR"],
-        "account": "wx23413.europe-west4.gcp",
-        "role": "sysadmin",
-        "warehouse": "dev__xs",
-        "authenticator": "externalbrowser",
-    }
+    config_sso = {"role": "sysadmin"}
+    config_sso.update(config["snowflake"])
 
     return snowflake.connector.connect(**config_sso).cursor(DictCursor)
 

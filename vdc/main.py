@@ -5,8 +5,21 @@ from importlib.metadata import version
 import click
 
 from vdc.open import setup_env
+from vdc.utils import set_config
 
 vdc_version = version("vdl-cli")
+
+config = {
+    "snowflake": {
+        "account": os.getenv("SNOWFLAKE_ACCOUNT", "wx23413.europe-west4.gcp"),
+        "user": os.getenv("SNOWFLAKE_USER") or os.environ["DBT_USR"],
+        "password": os.getenv("SNOWFLAKE_PASSWORD"),
+        "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "dev__xs"),
+        "authenticator": os.getenv("SNOWFLAKE_AUTHENTICATOR", "externalbrowser"),
+    }
+}
+
+set_config(config)
 
 
 @click.group(name="cli")

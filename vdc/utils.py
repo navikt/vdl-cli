@@ -5,6 +5,13 @@ from alive_progress import alive_bar
 
 LOGGER = logging.getLogger(__name__)
 
+config = None
+
+
+def set_config(new_config):
+    global config
+    config = new_config
+
 
 def _spinner(title: str):
     return alive_bar(
