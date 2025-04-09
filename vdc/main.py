@@ -118,8 +118,14 @@ def disposal(
 
 
 @waste.command()
-def incineration():
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Dry run and print potential removals",
+)
+def incineration(dry_run):
     """Drop database objects marked for removal"""
-    from vdc.waste import remove_tables
+    from vdc.waste import remove_marked_objects
 
-    remove_tables()
+    remove_marked_objects(dry_run=dry_run)

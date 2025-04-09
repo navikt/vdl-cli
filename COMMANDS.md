@@ -8,11 +8,14 @@ Options:
   --help         Show this message and exit.
 
 Commands:
-  clone
-  diff
-  open
+  clone  Clone a database
+  diff   Compare two tables in Snowflake
+  open   Setup and open the environment for the current user
+  waste  Commands for marking db objects as waste or removing marked objects
 
 Usage: vdc open [OPTIONS]
+
+  Setup and open the environment for the current user
 
 Options:
   --verbose  Print verbose output
@@ -20,11 +23,15 @@ Options:
 
 Usage: vdc clone [OPTIONS] DB TO
 
+  Clone a database
+
 Options:
   -u, --usage TEXT  Grant usage to role
   --help            Show this message and exit.
 
 Usage: vdc diff [OPTIONS] TABLE PRIMARY_KEY
+
+  Compare two tables in Snowflake
 
 Options:
   -d, --compare-to-db TEXT      Database you want to compare against. Default
@@ -38,5 +45,33 @@ Options:
   -c, --column TEXT             Only compare column
   -i, --ignore-column TEXT      Ignore column
   --help                        Show this message and exit.
+
+Usage: vdc waste [OPTIONS] COMMAND [ARGS]...
+
+  Commands for marking db objects as waste or removing marked objects
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  disposal      Mark db objects for removal
+  incineration  Drop database objects marked for removal
+
+Usage: vdc waste disposal [OPTIONS]
+
+  Mark db objects for removal
+
+Options:
+  -d, --dbt-project-dir TEXT  Path to dbt project directory
+  -p, --dbt-profile-dir TEXT  Path to dbt profile directory
+  -t, --dbt-target TEXT       dbt profile target
+  --help                      Show this message and exit.
+
+Usage: vdc waste incineration [OPTIONS]
+
+  Drop database objects marked for removal
+
+Options:
+  --help  Show this message and exit.
 
 ```

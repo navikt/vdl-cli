@@ -239,3 +239,212 @@ def mark_objects_for_removal(
     with _snow_connection() as cursor:
         for query in dispose_queries:
             cursor.execute(query)
+
+
+def _get_marked_objects():
+    with _snow_connection() as cursor:
+        q = f"show databases like '%drp%' in account"
+        cursor.execute(q)
+        databases = cursor.fetchall()
+        cursor.execute(f"show schemas like '%drp%' in account")
+        schemas = cursor.fetchall()
+        cursor.execute(f"show tables like '%drp%' in account")
+        tables = cursor.fetchall()
+        cursor.execute(f"show views like '%drp%' in account")
+        views = cursor.fetchall()
+    return databases, schemas, tables, views
+
+
+def _is_potential_drp_object(object_name: str, compare_date: datetime.date) -> bool:
+    drp_month = object_name.rsplit("DRP_")[-1]
+    if len(drp_month) != 6:
+        drp_month = object_name.rsplit("DRP")[-1]
+    if len(drp_month) != 6:
+        print(
+            f"Invalid month format in marked object. Expected format: DRP_YYYYMM: {object_name}"
+        )
+        return True
+    db_date = datetime.date(
+        year=int(drp_month[:4]),
+        month=int(drp_month[4:6]),
+        day=1,
+    )
+    if db_date < compare_date:
+        return True
+    return False
+
+
+def _filter_objects_for_removal(
+    databases, schemas, tables, views, compare_date: datetime.date
+):
+    potential_drp_databases = []
+    for database in databases:
+        database_name = f"{database['name']}"
+        if _is_potential_drp_object(
+            object_name=database_name, compare_date=compare_date
+        ):
+            potential_drp_databases.append(database_name)
+
+    potential_drp_schemas = []
+    for schema in schemas:
+        schema_name = f"{schema['database_name']}.{schema['name']}"
+        if _is_potential_drp_object(object_name=schema_name, compare_date=compare_date):
+            potential_drp_schemas.append(schema_name)
+
+    potential_drp_tables = []
+    for table in tables:
+        table_name = f"{table['database_name']}.{table['schema_name']}.{table['name']}"
+        if _is_potential_drp_object(object_name=table_name, compare_date=compare_date):
+            potential_drp_tables.append(table_name)
+
+    potential_drp_views = []
+    for view in views:
+        view_name = f"{view['database_name']}.{view['schema_name']}.{view['name']}"
+        if _is_potential_drp_object(object_name=view_name, compare_date=compare_date):
+            potential_drp_views.append(view_name)
+    return (
+        potential_drp_databases,
+        potential_drp_schemas,
+        potential_drp_tables,
+        potential_drp_views,
+    )
+
+
+def _drop_object_query_builder(
+    databases: list[str],
+    schemas: list[str],
+    tables: list[str],
+    views: list[str],
+) -> list[str]:
+    queries = []
+    if databases:
+        for database in databases:
+            q = f"drop database {database}"
+            queries.append(q)
+    if schemas:
+        for schema in schemas:
+            q = f"drop schema {schema}"
+            queries.append(q)
+    if tables:
+        for table in tables:
+            q = f"drop table {table}"
+            queries.append(q)
+    if views:
+        for view in views:
+            q = f"drop view {view}"
+            queries.append(q)
+    return queries
+
+
+def remove_marked_objects(dry_run: bool):
+    compare_date = datetime.date.today()
+    databases, schemas, tables, views = _get_marked_objects()
+    (
+        potential_drp_databases,
+        potential_drp_schemas,
+        potential_drp_tables,
+        potential_drp_views,
+    ) = _filter_objects_for_removal(
+        databases=databases,
+        schemas=schemas,
+        tables=tables,
+        views=views,
+        compare_date=compare_date,
+    )
+    if (
+        not potential_drp_databases
+        and not potential_drp_schemas
+        and not potential_drp_tables
+        and not potential_drp_views
+    ):
+        print("No objects found for removal.")
+        return
+    if dry_run:
+        print("Potential objects for removal:\n")
+        if potential_drp_databases:
+            print("Databases:")
+            for database in potential_drp_databases:
+                print(database)
+            print("")
+        if potential_drp_schemas:
+            print("Schemas:")
+            for schema in potential_drp_schemas:
+                print(schema)
+            print("")
+        if potential_drp_tables:
+            print("Tables:")
+            for table in potential_drp_tables:
+                print(table)
+            print("")
+        if potential_drp_views:
+            print("Views:")
+            for view in potential_drp_views:
+                print(view)
+            print("")
+        return
+
+    remove_databases = None
+    remove_schemas = None
+    remove_tables = None
+    remove_views = None
+    if potential_drp_databases:
+        remove_databases = questionary.checkbox(
+            "Select which databases do you want to remove",
+            choices=potential_drp_databases,
+        ).ask()
+    if potential_drp_schemas:
+        remove_schemas = questionary.checkbox(
+            "Select which schemas do you want to remove",
+            choices=potential_drp_schemas,
+        ).ask()
+    if potential_drp_tables:
+        remove_tables = questionary.checkbox(
+            "Select which tables do you want to remove",
+            choices=potential_drp_tables,
+        ).ask()
+    if potential_drp_views:
+        remove_views = questionary.checkbox(
+            "Select which views do you want to remove",
+            choices=potential_drp_views,
+        ).ask()
+    if (
+        not remove_databases
+        and not remove_schemas
+        and not remove_tables
+        and not remove_views
+    ):
+        print("No objects selected for removal.")
+        return
+    print("Selected objects for removal:")
+    if remove_databases:
+        for database in remove_databases:
+            print(database)
+    if remove_schemas:
+        for schema in remove_schemas:
+            print(schema)
+    if remove_tables:
+        for table in remove_tables:
+            print(table)
+    if remove_views:
+        for view in remove_views:
+            print(view)
+    remove = questionary.confirm(
+        "Do you want to remove these objects? This action is irreversible.",
+        default=False,
+    ).ask()
+    if not remove:
+        print("Aborting...")
+        return
+    print("Dropping objects...")
+    drop_queries = _drop_object_query_builder(
+        databases=remove_databases,
+        schemas=remove_schemas,
+        tables=remove_tables,
+        views=remove_views,
+    )
+    with _snow_connection() as cursor:
+        for query in drop_queries:
+            cursor.execute(query)
+    print("Objects removed.")
+    print("Done.")
+    return
