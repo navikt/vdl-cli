@@ -39,7 +39,7 @@ setup(
             "dbt-snowflake",
         ],
     },
-    python_requires=">=3.11",
+    python_requires=">=3.10",
     entry_points="""
         [console_scripts]
         vdc=vdc.main:cli
