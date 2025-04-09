@@ -34,3 +34,17 @@ Pass på at du har gjort følgende før du kjører `make release`:
 ```shell
 make release
 ```
+
+## Configuration
+
+### Snowflake
+
+Snowflake connection can be configured using the following environment variables.
+
+```text
+SNOWFLAKE_ACCOUNT
+SNOWFLAKE_USER
+SNOWFLAKE_PASSWORD
+SNOWFLAKE_WAREHOUSE
+SNOWFLAKE_AUTHENTICATOR
+```
