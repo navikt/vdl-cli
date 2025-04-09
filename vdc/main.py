@@ -17,6 +17,7 @@ def cli(): ...
 @cli.command()
 @click.option("--verbose", is_flag=True, help="Print verbose output")
 def open(verbose):
+    """Setup and open the environment for the current user"""
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
     setup_env()
@@ -27,6 +28,7 @@ def open(verbose):
 @click.argument("to", nargs=1, required=True)
 @click.option("--usage", "-u", multiple=True, help="Grant usage to role")
 def clone(db, to, usage):
+    """Clone a database"""
     from vdc.clone import create_db_clone
 
     create_db_clone(src=db, dst=to, usage=usage)
@@ -61,6 +63,7 @@ def diff(
     column,
     ignore_column,
 ):
+    """Compare two tables in Snowflake"""
     from vdc.diff import table_diff
 
     full_table_name = table
@@ -77,3 +80,46 @@ def diff(
         columns=column,
         ignore_columns=ignore_column,
     )
+
+
+@cli.group(name="waste")
+def waste():
+    """Commands for marking db objects as waste or removing marked objects"""
+    pass
+
+
+@waste.command()
+@click.option(
+    "--dbt-project-dir", "-d", default="dbt", help="Path to dbt project directory"
+)
+@click.option(
+    "--dbt-profile-dir", "-p", default="dbt", help="Path to dbt profile directory"
+)
+@click.option("--dbt-target", "-t", default="prod", help="dbt profile target")
+# @click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
+# @click.option("--schema", "-s", multiple=True, help="Schema to search in")
+def disposal(
+    dbt_project_dir,
+    dbt_profile_dir,
+    dbt_target,
+    #    ignore_table,
+    #    schema,
+):
+    """Mark db objects for removal"""
+    from vdc.waste import mark_objects_for_removal
+
+    mark_objects_for_removal(
+        dbt_project_dir=dbt_project_dir,
+        dbt_profile_dir=dbt_profile_dir,
+        dbt_target=dbt_target,
+        #        ignore_table=ignore_table,
+        #        schema=schema,
+    )
+
+
+@waste.command()
+def incineration():
+    """Drop database objects marked for removal"""
+    from vdc.waste import remove_tables
+
+    remove_tables()

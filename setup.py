@@ -27,6 +27,7 @@ setup(
         "alive-progress",
         "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
         "xlsxwriter",
+        "questionary",
     ],
     extras_require={
         "all": [],
@@ -34,6 +35,8 @@ setup(
             "black",
             "isort",
             "pytest",
+            "dbt-core",
+            "dbt-snowflake",
         ],
     },
     python_requires=">=3.11",
