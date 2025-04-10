@@ -22,6 +22,24 @@ def _snow_connection():
 def _create_dbt_manifest(
     dbt_project_dir: str = "dbt", dbt_profile_dir: str = "dbt", dbt_target: str = "prod"
 ):
+
+    run_result = subprocess.run(
+        [
+            "dbt",
+            "deps",
+            "--target",
+            dbt_target,
+            "--profiles-dir",
+            dbt_profile_dir,
+            "--project-dir",
+            dbt_project_dir,
+        ],
+        capture_output=True,
+    )
+    if run_result.returncode != 0:
+        print("Error running command:", run_result.stderr)
+        print("Command output:", run_result.stdout)
+        exit(1)
     run_result = subprocess.run(
         [
             "dbt",
@@ -35,7 +53,10 @@ def _create_dbt_manifest(
         ],
         capture_output=True,
     )
-    run_result.check_returncode()
+    if run_result.returncode != 0:
+        print("Error running command:", run_result.stderr)
+        print("Command output:", run_result.stdout)
+        exit(1)
 
 
 def _get_db_objects_from_manifest(path: Path = Path("dbt/target/manifest.json")):
@@ -149,7 +170,9 @@ def mark_objects_for_removal(
         dbt_profile_dir=dbt_profile_dir,
         dbt_target=dbt_target,
     )
-    dbt_tables, databases = _get_db_objects_from_manifest()
+    dbt_tables, databases = _get_db_objects_from_manifest(
+        path=Path(f"{dbt_project_dir}/target/manifest.json")
+    )
     dbt_tables_not_transient = set(
         table.removesuffix("__transient") for table in dbt_tables
     )
