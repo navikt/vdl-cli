@@ -354,7 +354,8 @@ def remove_marked_objects(dry_run: bool):
         print("No objects found for removal.")
         return
     if dry_run:
-        print("Potential objects for removal:\n")
+        print("=======================================================")
+        print("\nPotential objects for removal:\n")
         if potential_drp_databases:
             print("Databases:")
             for database in potential_drp_databases:
