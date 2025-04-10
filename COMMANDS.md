@@ -65,6 +65,10 @@ Options:
   -d, --dbt-project-dir TEXT  Path to dbt project directory
   -p, --dbt-profile-dir TEXT  Path to dbt profile directory
   -t, --dbt-target TEXT       dbt profile target
+  --dry-run                   Dry run and print potential objects that can be
+                              marked for removal
+  -i, --ignore-table TEXT     Ignore table from search
+  -s, --schema TEXT           What schema to search in
   --help                      Show this message and exit.
 
 Usage: vdc waste incineration [OPTIONS]
@@ -72,6 +76,7 @@ Usage: vdc waste incineration [OPTIONS]
   Drop database objects marked for removal
 
 Options:
-  --help  Show this message and exit.
+  --dry-run  Dry run and print potential removals
+  --help     Show this message and exit.
 
 ```
