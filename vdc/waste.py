@@ -69,28 +69,7 @@ def _dispose_table_query_builder(tables: list[dict], removal_month: str) -> list
     return queries
 
 
-def mark_objects_for_removal(
-    dbt_project_dir: str = "dbt",
-    dbt_target: str = "prod",
-    dbt_profile_dir: str = "dbt",
-    dry_run: bool = False,
-    ignore_table: Optional[tuple[str]] = None,
-    schema: list[str] = [],
-):
-    if ignore_table:
-        ignore_table = tuple(table.lower() for table in ignore_table)
-
-    _validate_program("dbt")
-    _create_dbt_manifest(
-        dbt_project_dir=dbt_project_dir,
-        dbt_profile_dir=dbt_profile_dir,
-        dbt_target=dbt_target,
-    )
-    dbt_tables, databases = _get_db_objects_from_manifest()
-    dbt_tables_not_transient = set(
-        table.removesuffix("__transient") for table in dbt_tables
-    )
-    databases = sorted(databases)
+def _ask_about_database_and_schemas(databases) -> tuple[str]:
     selected_databases = questionary.checkbox(
         "Which databases do you want to inspect?",
         choices=databases,
@@ -133,17 +112,57 @@ def mark_objects_for_removal(
             continue
         choice = Choice(schema_name, checked=True)
         default_schemas.append(choice)
+
     selected_schemas = questionary.checkbox(
         "Which schemas do you want to inspect?",
         choices=default_schemas,
     ).ask()
+
+    return tuple(selected_schemas)
+
+
+def mark_objects_for_removal(
+    dbt_project_dir: str = "dbt",
+    dbt_target: str = "prod",
+    dbt_profile_dir: str = "dbt",
+    dry_run: bool = False,
+    ignore_tables: Optional[tuple[str]] = None,
+    schemas: Optional[tuple[str]] = None,
+):
+    if ignore_tables:
+        for table in ignore_tables:
+            assert (
+                len(table.split(".")) == 3
+            ), "Table must be in the format 'database.schema.table'"
+        ignore_tables = tuple(table.lower() for table in ignore_tables)
+
+    if schemas:
+        for schema in schemas:
+            assert (
+                len(schema.split(".")) == 2
+            ), "Schema must be in the format 'database.schema'"
+        schemas = tuple(schema.lower() for schema in schemas)
+
+    _validate_program("dbt")
+    _create_dbt_manifest(
+        dbt_project_dir=dbt_project_dir,
+        dbt_profile_dir=dbt_profile_dir,
+        dbt_target=dbt_target,
+    )
+    dbt_tables, databases = _get_db_objects_from_manifest()
+    dbt_tables_not_transient = set(
+        table.removesuffix("__transient") for table in dbt_tables
+    )
+    databases = sorted(databases)
+    if not schemas:
+        schemas = _ask_about_database_and_schemas(databases=databases)
+    selected_databases = set(schema.split(".")[0] for schema in schemas)
+    selected_schemas = set(f"'{schema.split('.')[1].upper()}'" for schema in schemas)
+
     if not selected_schemas:
         print("Aborting...")
         return
-    selected_schemas = [
-        f"'{selected_schemas.split('.')[1].upper()}'"
-        for selected_schemas in selected_schemas
-    ]
+
     existing_table = []
     with _snow_connection() as cursor:
         for database in selected_databases:
@@ -162,7 +181,7 @@ def mark_objects_for_removal(
         if table["TABLE_SCHEMA"] == "INFORMATION_SCHEMA":
             continue
         db_table = f"{table['TABLE_CATALOG']}.{table['TABLE_SCHEMA']}.{table['TABLE_NAME']}".lower()
-        if ignore_table and db_table in ignore_table:
+        if ignore_tables and db_table in ignore_tables:
             continue
         if db_table in dbt_tables:
             continue
