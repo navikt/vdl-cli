@@ -72,6 +72,7 @@ def mark_objects_for_removal(
     dbt_project_dir: str = "dbt",
     dbt_target: str = "prod",
     dbt_profile_dir: str = "dbt",
+    dry_run: bool = False,
     ignore_table: list[str] = [],
     schema: list[str] = [],
 ):
@@ -141,7 +142,6 @@ def mark_objects_for_removal(
     ]
     existing_table = []
     with _snow_connection() as cursor:
-        print(f"Fetching tables in databases: {selected_databases}")
         for database in selected_databases:
             query = f"select table_catalog, table_schema, table_name, last_altered from {database}.information_schema.tables where table_schema in ({','.join(selected_schemas)})"
             cursor.execute(query)
@@ -172,7 +172,7 @@ def mark_objects_for_removal(
             {"name": db_table, "last_altered": table["LAST_ALTERED"]}
         )
     if not potential_drepcation_tables:
-        print("No tables found for deprecation.")
+        print("No potential tables found.")
         return
     potential_drepcation_tables.sort(key=lambda x: x["name"])
 
@@ -187,52 +187,60 @@ def mark_objects_for_removal(
         )
         for table in potential_drepcation_tables
     ]
-    selected_tables = questionary.checkbox(
-        "Which tables do you want to deprecate?",
-        choices=potential_drepcation_tables_choices,
-    ).ask()
-    if not selected_tables:
-        print("No tables selected for deprecation.")
-        return
-    print("Selected tables for deprecation:")
-    for table in selected_tables:
-        print(table["name"])
-    dispose = questionary.confirm("Do you want to dispose these tables?").ask()
-    if not dispose:
-        print("Aborting...")
-        return
-    date_today = datetime.date.today()
-    current_year = date_today.year
-    current_month = date_today.month
-    removal_year_months_choices = []
-    for i in range(1, 13):
-        year = current_year
-        month = current_month + i
-        if current_month + i > 12:
-            year = current_year + 1
-            month = current_month + i - 12
 
-        title = f"{year}-{month}"
-        value = f"{year}{month}"
-        if month < 10:
-            title = f"{year}-0{month}"
-            value = f"{year}0{month}"
-        removal_year_months_choices.append(Choice(title=title, value=value))
+    if dry_run:
+        print("Potential tables to mark for removal:")
+        for table in potential_drepcation_tables_choices:
+            print(table.title)
 
-    removal_year_month = questionary.select(
-        "Select month for removal:",
-        choices=removal_year_months_choices,
-    ).ask()
-    if not removal_year_month:
-        print("Aborting ...")
-        return
-    dispose_queries = _dispose_table_query_builder(
-        tables=selected_tables,
-        removal_month=removal_year_month,
-    )
-    with _snow_connection() as cursor:
-        for query in dispose_queries:
-            cursor.execute(query)
+    if not dry_run:
+
+        selected_tables = questionary.checkbox(
+            "Which tables do you want to deprecate?",
+            choices=potential_drepcation_tables_choices,
+        ).ask()
+        if not selected_tables:
+            print("No tables selected for disposal.")
+            return
+        print("Selected tables for disposal:")
+        for table in selected_tables:
+            print(table["name"])
+        dispose = questionary.confirm("Do you want to dispose these tables?").ask()
+        if not dispose:
+            print("Aborting...")
+            return
+        date_today = datetime.date.today()
+        current_year = date_today.year
+        current_month = date_today.month
+        removal_year_months_choices = []
+        for i in range(1, 13):
+            year = current_year
+            month = current_month + i
+            if current_month + i > 12:
+                year = current_year + 1
+                month = current_month + i - 12
+
+            title = f"{year}-{month}"
+            value = f"{year}{month}"
+            if month < 10:
+                title = f"{year}-0{month}"
+                value = f"{year}0{month}"
+            removal_year_months_choices.append(Choice(title=title, value=value))
+
+        removal_year_month = questionary.select(
+            "Select month for removal:",
+            choices=removal_year_months_choices,
+        ).ask()
+        if not removal_year_month:
+            print("Aborting ...")
+            return
+        dispose_queries = _dispose_table_query_builder(
+            tables=selected_tables,
+            removal_month=removal_year_month,
+        )
+        with _snow_connection() as cursor:
+            for query in dispose_queries:
+                cursor.execute(query)
 
 
 def _get_marked_objects():

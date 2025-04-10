@@ -110,12 +110,19 @@ def waste():
     "--dbt-profile-dir", "-p", default="dbt", help="Path to dbt profile directory"
 )
 @click.option("--dbt-target", "-t", default="prod", help="dbt profile target")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Dry run and print potential objects that can be marked for removal",
+)
 # @click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
 # @click.option("--schema", "-s", multiple=True, help="Schema to search in")
 def disposal(
     dbt_project_dir,
     dbt_profile_dir,
     dbt_target,
+    dry_run,
     #    ignore_table,
     #    schema,
 ):
@@ -126,6 +133,7 @@ def disposal(
         dbt_project_dir=dbt_project_dir,
         dbt_profile_dir=dbt_profile_dir,
         dbt_target=dbt_target,
+        dry_run=dry_run,
         #        ignore_table=ignore_table,
         #        schema=schema,
     )
