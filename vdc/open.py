@@ -2,14 +2,13 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from shutil import which
 
 import yaml
 from click import clear, echo
 from jinja2 import Environment
 
 from vdc.clone import create_db_clone
-from vdc.utils import _spinner
+from vdc.utils import _spinner, _validate_program
 
 LOGGER = logging.getLogger(__name__)
 
@@ -157,13 +156,6 @@ def _validate_dbt_user(user):
             "\ndbt target user is not defined in dbt profiles.yml. Please define a user for the target\n"
         )
         exit(1)
-
-
-def _validate_program(program):
-    if which(program) is None:
-        LOGGER.error(f"\n{program} is not installed. Please install it.\n")
-        exit(1)
-    LOGGER.info(f"Found program: {program}")
 
 
 def _install_environment():

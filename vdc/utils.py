@@ -1,4 +1,16 @@
+import logging
+from shutil import which
+
 from alive_progress import alive_bar
+
+LOGGER = logging.getLogger(__name__)
+
+config = None
+
+
+def set_config(new_config):
+    global config
+    config = new_config
 
 
 def _spinner(title: str):
@@ -9,3 +21,10 @@ def _spinner(title: str):
         monitor=False,
         refresh_secs=0.05,
     )
+
+
+def _validate_program(program):
+    if which(program) is None:
+        LOGGER.error(f"\n{program} is not installed. Please install it.\n")
+        exit(1)
+    LOGGER.info(f"Found program: {program}")

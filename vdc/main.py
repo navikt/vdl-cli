@@ -5,8 +5,22 @@ from importlib.metadata import version
 import click
 
 from vdc.open import setup_env
+from vdc.utils import set_config
 
 vdc_version = version("vdl-cli")
+
+config = {
+    "snowflake": {
+        "account": os.getenv("SNOWFLAKE_ACCOUNT", "wx23413.europe-west4.gcp"),
+        "user": os.getenv("SNOWFLAKE_USER") or os.getenv("DBT_USR"),
+        "password": os.getenv("SNOWFLAKE_PASSWORD"),
+        "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "dev__xs"),
+        "authenticator": os.getenv("SNOWFLAKE_AUTHENTICATOR", "externalbrowser"),
+        "role": os.getenv("SNOWFLAKE_ROLE", "sysadmin"),
+    }
+}
+
+set_config(config)
 
 
 @click.group(name="cli")
@@ -17,6 +31,7 @@ def cli(): ...
 @cli.command()
 @click.option("--verbose", is_flag=True, help="Print verbose output")
 def open(verbose):
+    """Setup and open the environment for the current user"""
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
     setup_env()
@@ -27,6 +42,7 @@ def open(verbose):
 @click.argument("to", nargs=1, required=True)
 @click.option("--usage", "-u", multiple=True, help="Grant usage to role")
 def clone(db, to, usage):
+    """Clone a database"""
     from vdc.clone import create_db_clone
 
     create_db_clone(src=db, dst=to, usage=usage)
@@ -61,6 +77,7 @@ def diff(
     column,
     ignore_column,
 ):
+    """Compare two tables in Snowflake"""
     from vdc.diff import table_diff
 
     full_table_name = table
@@ -77,3 +94,60 @@ def diff(
         columns=column,
         ignore_columns=ignore_column,
     )
+
+
+@cli.group(name="waste")
+def waste():
+    """Commands for marking db objects as waste or removing marked objects"""
+    pass
+
+
+@waste.command()
+@click.option(
+    "--dbt-project-dir", "-d", default="dbt", help="Path to dbt project directory"
+)
+@click.option(
+    "--dbt-profile-dir", "-p", default="dbt", help="Path to dbt profile directory"
+)
+@click.option("--dbt-target", "-t", default="prod", help="dbt profile target")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Dry run and print potential objects that can be marked for removal",
+)
+@click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
+@click.option("--schema", "-s", multiple=True, help="What schema to search in")
+def disposal(
+    dbt_project_dir,
+    dbt_profile_dir,
+    dbt_target,
+    dry_run,
+    ignore_table,
+    schema,
+):
+    """Mark db objects for removal"""
+    from vdc.waste import mark_objects_for_removal
+
+    mark_objects_for_removal(
+        dbt_project_dir=dbt_project_dir,
+        dbt_profile_dir=dbt_profile_dir,
+        dbt_target=dbt_target,
+        dry_run=dry_run,
+        ignore_tables=ignore_table,
+        schemas=schema,
+    )
+
+
+@waste.command()
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Dry run and print potential removals",
+)
+def incineration(dry_run):
+    """Drop database objects marked for removal"""
+    from vdc.waste import remove_marked_objects
+
+    remove_marked_objects(dry_run=dry_run)

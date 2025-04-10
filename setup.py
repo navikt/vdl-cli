@@ -17,7 +17,7 @@ setup(
     long_description_content_type="text/markdown",
     classifiers=[
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.10",
         "Operating System :: OS Independent",
     ],
     install_requires=[
@@ -27,6 +27,7 @@ setup(
         "alive-progress",
         "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
         "xlsxwriter",
+        "questionary",
     ],
     extras_require={
         "all": [],
@@ -34,9 +35,11 @@ setup(
             "black",
             "isort",
             "pytest",
+            "dbt-core",
+            "dbt-snowflake",
         ],
     },
-    python_requires=">=3.11",
+    python_requires=">=3.10",
     entry_points="""
         [console_scripts]
         vdc=vdc.main:cli
