@@ -34,7 +34,7 @@ def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
         clone_db = dst
 
         use_role = "use role sysadmin"
-        create_sql = f"create or replace database {clone_db} clone {prod_db}"
+        show_database = f"show databases like '{prod_db}'"
         show_dynamic_tables = f"show dynamic tables in database {clone_db}"
 
         try:
@@ -44,7 +44,12 @@ def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
             return
 
         conn.run_query(use_role)
+
+        database_info = list(conn.run_query(show_database))
+        transient = "transient " if database_info[0].get("options") == "TRANSIENT" else ""
+        create_sql = f"create or replace {transient}database {clone_db} clone {prod_db}"
         conn.run_query(create_sql)
+        
         dynamic_tables = conn.run_query(show_dynamic_tables)
         for suspend_dynamic_table in _suspend_dynamic_tables(
             db=clone_db, dynamic_tables=dynamic_tables
