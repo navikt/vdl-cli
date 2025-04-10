@@ -116,14 +116,14 @@ def waste():
     default=False,
     help="Dry run and print potential objects that can be marked for removal",
 )
-# @click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
+@click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
 # @click.option("--schema", "-s", multiple=True, help="Schema to search in")
 def disposal(
     dbt_project_dir,
     dbt_profile_dir,
     dbt_target,
     dry_run,
-    #    ignore_table,
+    ignore_table,
     #    schema,
 ):
     """Mark db objects for removal"""
@@ -134,7 +134,7 @@ def disposal(
         dbt_profile_dir=dbt_profile_dir,
         dbt_target=dbt_target,
         dry_run=dry_run,
-        #        ignore_table=ignore_table,
+        ignore_table=ignore_table,
         #        schema=schema,
     )
 

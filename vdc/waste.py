@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import questionary
 import snowflake.connector
@@ -73,9 +74,12 @@ def mark_objects_for_removal(
     dbt_target: str = "prod",
     dbt_profile_dir: str = "dbt",
     dry_run: bool = False,
-    ignore_table: list[str] = [],
+    ignore_table: Optional[tuple[str]] = None,
     schema: list[str] = [],
 ):
+    if ignore_table:
+        ignore_table = tuple(table.lower() for table in ignore_table)
+
     _validate_program("dbt")
     _create_dbt_manifest(
         dbt_project_dir=dbt_project_dir,
@@ -158,6 +162,8 @@ def mark_objects_for_removal(
         if table["TABLE_SCHEMA"] == "INFORMATION_SCHEMA":
             continue
         db_table = f"{table['TABLE_CATALOG']}.{table['TABLE_SCHEMA']}.{table['TABLE_NAME']}".lower()
+        if ignore_table and db_table in ignore_table:
+            continue
         if db_table in dbt_tables:
             continue
         if db_table in dbt_tables_not_transient:
@@ -194,7 +200,6 @@ def mark_objects_for_removal(
             print(table.title)
 
     if not dry_run:
-
         selected_tables = questionary.checkbox(
             "Which tables do you want to deprecate?",
             choices=potential_drepcation_tables_choices,
