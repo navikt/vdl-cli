@@ -78,6 +78,16 @@ def _desc(table: str) -> list[dict]:
         return cur.fetchall()
 
 
+def _remove_tz_from_timestamp_in_df(
+    df: pd.DataFrame, timezone: str = "Europe/Oslo"
+) -> pd.DataFrame:
+    print("Removing timezone from datetime columns...")
+    for col in df.select_dtypes(include=[f"datetime64[ns, {timezone}]"]):
+        df[col] = df[col].dt.tz_localize(None)
+        print(f"Removed timezone from column: {col}")
+    return df
+
+
 def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     primary_key = primary_key.upper()
 
@@ -130,6 +140,7 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     if generate_report:
         dagens_dato = pd.Timestamp.now().strftime("%Y-%m-%d")
         file_name = f"diff_{table.lower()}_{dagens_dato}.xlsx"
+        diff = _remove_tz_from_timestamp_in_df(diff)
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             diff.to_excel(writer, sheet_name="diff", merge_cells=False)
             worksheet = writer.sheets["diff"]
