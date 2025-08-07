@@ -51,7 +51,7 @@ def _query_builder(
         ignore_columns = tuple(c.lower() for c in ignore_columns)
         unique_columns = unique_columns - set(ignore_columns)
 
-    cols = ",\n".join(unique_columns)
+    cols = ",\n".join(f"{col}::varchar as {col}" for col in unique_columns)
     return [
         f"select\n{cols}\nfrom {table}\nexcept\nselect\n{cols}\nfrom {compare_to}",
         f"select\n{cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}",
@@ -78,6 +78,8 @@ def _desc(table: str) -> list[dict]:
         return cur.fetchall()
 
 
+# Ikke lenger nødvendig nå som alt blir konvertert til string, men kan være
+# nyttig senere hvis konverteringen av til string fjernes.
 def _remove_tz_from_timestamp_in_df(
     df: pd.DataFrame, timezone: str = "Europe/Oslo"
 ) -> pd.DataFrame:
@@ -140,8 +142,6 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
     if generate_report:
         dagens_dato = pd.Timestamp.now().strftime("%Y-%m-%d")
         file_name = f"diff_{table.lower()}_{dagens_dato}.xlsx"
-        diff = _remove_tz_from_timestamp_in_df(diff)
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             diff.to_excel(writer, sheet_name="diff", merge_cells=False)
-            worksheet = writer.sheets["diff"]
         print(f"Excel-report stored as: {file_name}")
