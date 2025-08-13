@@ -35,9 +35,9 @@ Usage: vdc diff [OPTIONS] TABLE PRIMARY_KEY
 
 Options:
   -d, --compare-to-db TEXT      Database you want to compare against. Default
-                                is dev_<user>_<db> where <user> is your
-                                username and <db> is the database of the
-                                provided table
+                                is dev_<devname>_<db> where <devname> is the value of the environment variable DEV_NAME
+                                and <db> is the database of the
+                                provided table. Will fallback to use USER environment variable if DEV_NAME is not set.
   -s, --compare-to-schema TEXT  Schema you want to compare against Default is
                                 same as provided table
   -t, --compare-to-table TEXT   Table you want to compare against. Default is

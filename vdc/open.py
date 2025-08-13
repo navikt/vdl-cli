@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _env_override(value, default=None):
+    """Override environment variable with special case to handle fallback for DEV_NAME"""
+    if value == 'DEV_NAME':
+        dev_name = os.getenv('DEV_NAME')
+        if dev_name:
+            return dev_name
+        user = os.getenv('USER')
+        if not re.match(r'^[a-zA-Z0-9]+$', user):
+            raise ValueError(f"USER environment variable contains special characters and cannot be used as dev_name. Set dev_name environment variable instead. NB! Underscore is not allowed, only alphanumeric characters.")
+        return user
     return os.getenv(value, default)
 
 
