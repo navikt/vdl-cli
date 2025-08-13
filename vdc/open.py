@@ -313,4 +313,5 @@ def setup_env():
                     )
 
     echo("Launching vscode")
-    subprocess.run("source .venv/bin/activate && code .", shell=True)
+    curr_shell = os.environ.get('SHELL')
+    subprocess.run([curr_shell, "-c", "source .venv/bin/activate && code ."])
