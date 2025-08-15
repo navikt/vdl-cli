@@ -15,7 +15,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _env_override(value, default=None):
-    """Override environment variable with special case to handle fallback for DEV_NAME"""
+    """Replace environment variables in Jinja Environment"""
+
+    # This block tests a special case if the env variable referred to in the .yml file is DEV_NAME, because it needs special treatment.
+    # If it is not set the environment variable USER is used as fallback. 
+    # If USER contains special characters that are not allowed in Snowflake unless they are quoted,
+    # an error is raised that will guide the user to set DEV_NAME instead. 
+    # Underscore and dollarsign is actually allowed in Snowflake, but omitted because we want the variable to be only alphanumeric chars in a string. 
     if value == 'DEV_NAME':
         dev_name = os.getenv('DEV_NAME')
         if dev_name:
@@ -24,6 +30,8 @@ def _env_override(value, default=None):
         if not re.match(r'^[a-zA-Z0-9]+$', user):
             raise ValueError(f"USER environment variable contains special characters and cannot be used as dev_name. Set dev_name environment variable instead. NB! Underscore is not allowed, only alphanumeric characters.")
         return user
+    
+    # For all other environment variables, return the value or default if they are not set
     return os.getenv(value, default)
 
 
@@ -170,6 +178,8 @@ def _validate_dbt_user(user):
 
 def _install_environment():
     with _spinner("Installing environment"):
+        # make is called without arguments because install is the first target
+        # in the makefile, in which case make will run this target when called without arguments.
         make_install = subprocess.run(["make"], capture_output=True)
     if (
         make_install.returncode != 0
