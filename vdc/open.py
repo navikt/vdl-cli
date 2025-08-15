@@ -69,10 +69,14 @@ def _validate_target(targets, default_targets):
         return ValueError(
             f"{' and '.join(default_targets)} should have different databases in dbt profiles.yml"
         )
-    if targets["prod"]["database"] == targets["dev"]["database"]:
-        return ValueError(
-            "dev and prod should have different databases in dbt profiles.yml"
-        )
+    
+    # I commented out this block because I think it is the same as the one above, only more specific?
+    #
+    #if targets["prod"]["database"] == targets["dev"]["database"]:
+    #    return ValueError(
+    #        "dev and prod should have different databases in dbt profiles.yml"
+    #    )
+    
     existing_target = os.getenv("DBT_TARGET")
     if existing_target and existing_target not in default_targets:
         return ValueError(
@@ -296,7 +300,9 @@ def setup_env():
             _validate_dbt_role(selected_role)
             _validate_dbt_user(selected_user)
 
+            LOGGER.info(f"Selected target: {selected_target}")
             os.environ["DBT_TARGET"] = selected_target
+            LOGGER.info(f"Value of DBT_TARGET: {os.environ['DBT_TARGET']}")
 
             LOGGER.info(f"Selected target username: {selected_user}")
             LOGGER.info(f"Selected target database: {selected_database}")
