@@ -28,7 +28,7 @@ def _env_override(value, default=None):
             return dev_name
         user = os.getenv('USER')
         if not re.match(r'^[a-zA-Z0-9]+$', user):
-            raise ValueError(f"USER environment variable contains special characters and cannot be used as dev_name. Set dev_name environment variable instead. NB! Underscore is not allowed, only alphanumeric characters.")
+            raise ValueError(f"USER environment variable contains special characters and cannot be used as dev_name. Set dev_name environment variable instead. NB! Only alphanumeric characters are allowed.")
         return user
     
     # For all other environment variables, return the value or default if they are not set
