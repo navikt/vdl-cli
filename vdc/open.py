@@ -182,8 +182,8 @@ def _validate_dbt_user(user):
 
 def _install_environment():
     with _spinner("Installing environment"):
-        # make is called without arguments because install is the first target
-        # in the makefile, in which case make will run this target when called without arguments.
+        # make is called without arguments because install is either the first target
+        # in the makefile, or specified with .DEFAULT_GOAL = install, in which case make will run this target when called without arguments.
         make_install = subprocess.run(["make"], capture_output=True)
     if (
         make_install.returncode != 0
