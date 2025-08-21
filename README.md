@@ -29,10 +29,19 @@ Vi bruker [GitHub Release](https://docs.github.com/en/repositories/releasing-pro
 Pass på at du har gjort følgende før du kjører `make release`:
 
 * Koden er merget til `main`
+* Oppdater COMMANDS.md ved å kjøre `make docs`
 * `version` i [setup.py](setup.py) er oppdatert. (Husk commit)
 
 ```shell
 make release
+```
+
+## Update usage documentation
+
+The [usage documentation](COMMANDS.md) is automaticly generated based on the help descriptions for each command. Run the following command to update the documentation.
+
+```shell
+make docs
 ```
 
 ## Configuration
