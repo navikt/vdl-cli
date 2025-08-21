@@ -54,7 +54,7 @@ def clone(db, to, usage):
 @click.option(
     "--compare-to-db",
     "-d",
-    help="Database you want to compare against. Default is dev_<user>_<db> where <user> is your username and <db> is the database of the provided table",
+    help="Database you want to compare against. Default is dev_<devname>_<db> where <devname> is the value of the environment variable DEV_NAME and <db> is the database of the provided table",
 )
 @click.option(
     "--compare-to-schema",
@@ -82,7 +82,12 @@ def diff(
 
     full_table_name = table
     db, schema, table = table.split(".")
-    compare_to_db = compare_to_db or f"dev_{os.environ['USER']}_{db}"
+
+    # If no compare_to_db is provided, try to use the default dev database name.
+    # It is either constructed from the DEV_NAME environment variable or falls back 
+    # to the USER environment variable if it doesnt contain special characters.
+    compare_to_db = compare_to_db or f"dev_{os.environ['DEV_NAME']}_{db}" or f"dev_{os.environ['USER']}_{db}"
+    
     compare_to_schema = compare_to_schema or schema
     compare_to_table = compare_to_table or table
     compare_to = f"{compare_to_db}.{compare_to_schema}.{compare_to_table}"

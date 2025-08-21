@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,23 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _env_override(value, default=None):
+    """Replace environment variables in Jinja Environment"""
+
+    # This block tests a special case if the env variable referred to in the .yml file is DEV_NAME, because it needs special treatment.
+    # If it is not set the environment variable USER is used as fallback. 
+    # If USER contains special characters that are not allowed in Snowflake unless they are quoted,
+    # an error is raised that will guide the user to set DEV_NAME instead. 
+    # Underscore and dollarsign is actually allowed in Snowflake, but omitted because we want the variable to be only alphanumeric chars in a string. 
+    if value == 'DEV_NAME':
+        dev_name = os.getenv('DEV_NAME')
+        if dev_name:
+            return dev_name
+        user = os.getenv('USER')
+        if not re.match(r'^[a-zA-Z0-9]+$', user):
+            raise ValueError(f"USER environment variable contains special characters and cannot be used as dev_name. Set dev_name environment variable instead. NB! Only alphanumeric characters are allowed.")
+        return user
+    
+    # For all other environment variables, return the value or default if they are not set
     return os.getenv(value, default)
 
 
@@ -51,10 +69,14 @@ def _validate_target(targets, default_targets):
         return ValueError(
             f"{' and '.join(default_targets)} should have different databases in dbt profiles.yml"
         )
-    if targets["prod"]["database"] == targets["dev"]["database"]:
-        return ValueError(
-            "dev and prod should have different databases in dbt profiles.yml"
-        )
+    
+    # I commented out this block because I think it is the same as the one above, only more specific?
+    #
+    #if targets["prod"]["database"] == targets["dev"]["database"]:
+    #    return ValueError(
+    #        "dev and prod should have different databases in dbt profiles.yml"
+    #    )
+    
     existing_target = os.getenv("DBT_TARGET")
     if existing_target and existing_target not in default_targets:
         return ValueError(
@@ -160,6 +182,8 @@ def _validate_dbt_user(user):
 
 def _install_environment():
     with _spinner("Installing environment"):
+        # make is called without arguments because install is either the first target
+        # in the makefile, or specified with .DEFAULT_GOAL = install, in which case make will run this target when called without arguments.
         make_install = subprocess.run(["make"], capture_output=True)
     if (
         make_install.returncode != 0
@@ -276,7 +300,9 @@ def setup_env():
             _validate_dbt_role(selected_role)
             _validate_dbt_user(selected_user)
 
+            LOGGER.info(f"Selected target: {selected_target}")
             os.environ["DBT_TARGET"] = selected_target
+            LOGGER.info(f"Value of DBT_TARGET: {os.environ['DBT_TARGET']}")
 
             LOGGER.info(f"Selected target username: {selected_user}")
             LOGGER.info(f"Selected target database: {selected_database}")
@@ -303,4 +329,5 @@ def setup_env():
                     )
 
     echo("Launching vscode")
-    subprocess.run("source .venv/bin/activate && code .", shell=True)
+    curr_shell = os.environ.get('SHELL')
+    subprocess.run([curr_shell, "-c", "source .venv/bin/activate && code ."])
