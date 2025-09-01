@@ -448,19 +448,45 @@ def remove_marked_objects(dry_run: bool):
             choices=potential_drp_databases,
         ).ask()
     if potential_drp_schemas:
+        drop_databases = set()
+        for potential_drp_schema in potential_drp_schemas:
+            db_name, schema_name = potential_drp_schema.split(".")
+            if db_name in remove_databases:
+                drop_databases.add(potential_drp_schema)
+        schema_choices = list(set(potential_drp_schemas) - drop_databases)
         remove_schemas = questionary.checkbox(
             "Select which schemas do you want to remove",
-            choices=potential_drp_schemas,
+            choices=schema_choices,
         ).ask()
     if potential_drp_tables:
+        drop_schemas = set()
+        for potential_drp_table in potential_drp_tables:
+            db_name, schema_name, table_name = potential_drp_table.split(".")
+            if db_name in remove_databases:
+                drop_schemas.add(potential_drp_table)
+                continue
+            if f"{db_name}.{schema_name}" in remove_schemas:
+                drop_schemas.add(potential_drp_table)
+                continue
+        table_choices = list(set(potential_drp_tables) - drop_schemas)
         remove_tables = questionary.checkbox(
             "Select which tables do you want to remove",
-            choices=potential_drp_tables,
+            choices=table_choices,
         ).ask()
     if potential_drp_views:
+        drop_schemas = set()
+        for potential_drp_view in potential_drp_views:
+            db_name, schema_name, view_name = potential_drp_view.split(".")
+            if db_name in remove_databases:
+                drop_schemas.add(potential_drp_view)
+                continue
+            if f"{db_name}.{schema_name}" in remove_schemas:
+                drop_schemas.add(potential_drp_view)
+                continue
+        view_choices = list(set(potential_drp_views) - drop_schemas)
         remove_views = questionary.checkbox(
             "Select which views do you want to remove",
-            choices=potential_drp_views,
+            choices=view_choices,
         ).ask()
     if (
         not remove_databases
