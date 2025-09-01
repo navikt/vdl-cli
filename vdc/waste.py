@@ -79,12 +79,16 @@ def _get_db_objects_from_manifest(path: Path = Path("dbt/target/manifest.json"))
     return dbt_tables, databases
 
 
-def _dispose_table_query_builder(tables: list[dict], removal_month: str) -> list[str]:
+def _dispose_table_query_builder(
+    tables: list[dict], removal_month: str, user_alias: str
+) -> list[str]:
     queries = []
     backup_date = datetime.date.today().strftime("%Y%m%d")
     for table in tables:
         table_name = table["name"]
-        new_table_name = f"{table_name}_bck_{backup_date}_drp_{removal_month}"
+        new_table_name = (
+            f"{table_name}_bck_{backup_date}_user_{user_alias}_drp_{removal_month}"
+        )
         q = f"alter table {table_name} rename to {new_table_name};"
         queries.append(q)
     return queries
@@ -284,6 +288,7 @@ def mark_objects_for_removal(
         dispose_queries = _dispose_table_query_builder(
             tables=selected_tables,
             removal_month=removal_year_month,
+            user_alias=config.get("user_alias", "unknown"),
         )
         with _snow_connection() as cursor:
             for query in dispose_queries:
