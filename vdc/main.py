@@ -17,7 +17,8 @@ config = {
         "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "dev__xs"),
         "authenticator": os.getenv("SNOWFLAKE_AUTHENTICATOR", "externalbrowser"),
         "role": os.getenv("SNOWFLAKE_ROLE", "sysadmin"),
-    }
+    },
+    "user_alias": os.getenv("DEV_NAME") or os.getenv("USER"),
 }
 
 set_config(config)
