@@ -12,13 +12,13 @@ vdc_version = version("vdl-cli")
 config = {
     "snowflake": {
         "account": os.getenv("SNOWFLAKE_ACCOUNT", "wx23413.europe-west4.gcp"),
-        "user": os.getenv("SNOWFLAKE_USER") or os.getenv("DBT_USR"),
+        "user": os.getenv("SNOWFLAKE_USER") or os.environ["DBT_USR"],
         "password": os.getenv("SNOWFLAKE_PASSWORD"),
         "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "dev__xs"),
         "authenticator": os.getenv("SNOWFLAKE_AUTHENTICATOR", "externalbrowser"),
         "role": os.getenv("SNOWFLAKE_ROLE", "sysadmin"),
     },
-    "user_alias": os.getenv("DEV_NAME") or os.getenv("USER"),
+    "user_alias": os.getenv("DEV_NAME") or os.environ["USER"],
 }
 
 set_config(config)
@@ -87,11 +87,7 @@ def diff(
     # If no compare_to_db is provided, try to use the default dev database name.
     # It is either constructed from the DEV_NAME environment variable or falls back
     # to the USER environment variable if it doesnt contain special characters.
-    compare_to_db = (
-        compare_to_db
-        or f"dev_{os.environ['DEV_NAME']}_{db}"
-        or f"dev_{os.environ['USER']}_{db}"
-    )
+    compare_to_db = compare_to_db or f"dev_{config['user_alias']}_{db}"
 
     compare_to_schema = compare_to_schema or schema
     compare_to_table = compare_to_table or table
