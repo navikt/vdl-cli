@@ -239,6 +239,7 @@ def mark_objects_for_removal(
         )
         for table in potential_drepcation_tables
     ]
+    potential_drepcation_tables_choices.sort(key=lambda x: x.title)
 
     if dry_run:
         print("Potential tables to mark for removal:")
@@ -253,6 +254,7 @@ def mark_objects_for_removal(
         if not selected_tables:
             print("No tables selected for disposal.")
             return
+        selected_tables.sort(key=lambda x: x["name"])
         print("Selected tables for disposal:")
         for table in selected_tables:
             print(table["name"])
@@ -413,6 +415,10 @@ def remove_marked_objects(dry_run: bool):
     ):
         print("No objects found for removal.")
         return
+    potential_drp_databases.sort()
+    potential_drp_schemas.sort()
+    potential_drp_tables.sort()
+    potential_drp_views.sort()
     if dry_run:
         print("=======================================================")
         print("\nPotential objects for removal:\n")
@@ -454,6 +460,7 @@ def remove_marked_objects(dry_run: bool):
             if db_name in remove_databases:
                 drop_databases.add(potential_drp_schema)
         schema_choices = list(set(potential_drp_schemas) - drop_databases)
+        schema_choices.sort()
         remove_schemas = questionary.checkbox(
             "Select which schemas do you want to remove",
             choices=schema_choices,
@@ -469,6 +476,7 @@ def remove_marked_objects(dry_run: bool):
                 drop_schemas.add(potential_drp_table)
                 continue
         table_choices = list(set(potential_drp_tables) - drop_schemas)
+        table_choices.sort()
         remove_tables = questionary.checkbox(
             "Select which tables do you want to remove",
             choices=table_choices,
@@ -484,6 +492,7 @@ def remove_marked_objects(dry_run: bool):
                 drop_schemas.add(potential_drp_view)
                 continue
         view_choices = list(set(potential_drp_views) - drop_schemas)
+        view_choices.sort()
         remove_views = questionary.checkbox(
             "Select which views do you want to remove",
             choices=view_choices,
@@ -496,19 +505,28 @@ def remove_marked_objects(dry_run: bool):
     ):
         print("No objects selected for removal.")
         return
+    remove_databases.sort()
+    remove_schemas.sort()
+    remove_tables.sort()
+    remove_views.sort()
     print("Selected objects for removal:")
     if remove_databases:
+        print("\nDatabases:")
         for database in remove_databases:
             print(database)
     if remove_schemas:
+        print("\nSchemas:")
         for schema in remove_schemas:
             print(schema)
     if remove_tables:
+        print("\nTables:")
         for table in remove_tables:
             print(table)
     if remove_views:
+        print("\nViews:")
         for view in remove_views:
             print(view)
+    print("")
     remove = questionary.confirm(
         "Do you want to remove these objects? This action is irreversible.",
         default=False,
