@@ -1,5 +1,6 @@
 import logging
 import os
+from click import echo
 
 import snowflake.connector
 from snowflake.connector import DictCursor
@@ -46,6 +47,11 @@ def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
         conn.run_query(use_role)
 
         database_info = list(conn.run_query(show_database))
+
+        if not database_info:
+            LOGGER.error(f"Source database {prod_db} not found")
+            return
+
         transient = "transient " if database_info[0].get("options") == "TRANSIENT" else ""
         create_sql = f"create or replace {transient}database {clone_db} clone {prod_db}"
         conn.run_query(create_sql)
