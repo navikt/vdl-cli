@@ -125,7 +125,10 @@ def waste():
 @click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
 @click.option("--schema", "-s", multiple=True, help="What schema to search in")
 @click.option(
-    "--mark-object", "-m", multiple=True, help="Manually mark object for removal"
+    "--mark-object",
+    "-m",
+    multiple=True,
+    help="Mark object for removal. Supports marking database, schema and table. Example: --mark-object db.schema.table",
 )
 def disposal(
     dbt_project_dir,

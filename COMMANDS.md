@@ -70,7 +70,9 @@ Options:
                               marked for removal
   -i, --ignore-table TEXT     Ignore table from search
   -s, --schema TEXT           What schema to search in
-  -m, --mark-object TEXT      Manually mark object for removal
+  -m, --mark-object TEXT      Mark object for removal. Supports marking
+                              database, schema and table. Example: --mark-
+                              object db.schema.table
   --help                      Show this message and exit.
 
 Usage: vdc waste incineration [OPTIONS]
