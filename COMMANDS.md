@@ -70,6 +70,7 @@ Options:
                               marked for removal
   -i, --ignore-table TEXT     Ignore table from search
   -s, --schema TEXT           What schema to search in
+  -m, --mark-object TEXT      Manually mark object for removal
   --help                      Show this message and exit.
 
 Usage: vdc waste incineration [OPTIONS]
