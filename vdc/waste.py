@@ -79,17 +79,30 @@ def _get_db_objects_from_manifest(path: Path = Path("dbt/target/manifest.json"))
     return dbt_tables, databases
 
 
-def _dispose_table_query_builder(
-    tables: list[dict], removal_month: str, user_alias: str
+def _object_type(object_name: str) -> str:
+    parts = object_name.split(".")
+    if len(parts) == 1:
+        return "database"
+    elif len(parts) == 2:
+        return "schema"
+    elif len(parts) == 3:
+        return "table"
+    else:
+        raise ValueError(f"Invalid object name: {object_name}")
+
+
+def _dispose_objects_query_builder(
+    objects: list[dict], removal_month: str, user_alias: str
 ) -> list[str]:
     queries = []
     backup_date = datetime.date.today().strftime("%Y%m%d")
-    for table in tables:
-        table_name = table["name"]
-        new_table_name = (
-            f"{table_name}_bck_{backup_date}_user_{user_alias}_drp_{removal_month}"
+    for object in objects:
+        object_name = object["name"]
+        object_type = _object_type(object_name)
+        new_object_name = (
+            f"{object_name}_bck_{backup_date}_user_{user_alias}_drp_{removal_month}"
         )
-        q = f"alter table {table_name} rename to {new_table_name};"
+        q = f"alter {object_type} {object_name} rename to {new_object_name};"
         queries.append(q)
     return queries
 
@@ -153,6 +166,7 @@ def mark_objects_for_removal(
     dry_run: bool = False,
     ignore_tables: Optional[tuple[str]] = None,
     schemas: Optional[tuple[str]] = None,
+    mark_object: Optional[tuple[str]] = None,
 ):
     if ignore_tables:
         for table in ignore_tables:
@@ -167,79 +181,82 @@ def mark_objects_for_removal(
                 len(schema.split(".")) == 2
             ), "Schema must be in the format 'database.schema'"
         schemas = tuple(schema.lower() for schema in schemas)
-
-    _validate_program("dbt")
-    _create_dbt_manifest(
-        dbt_project_dir=dbt_project_dir,
-        dbt_profile_dir=dbt_profile_dir,
-        dbt_target=dbt_target,
-    )
-    dbt_tables, databases = _get_db_objects_from_manifest(
-        path=Path(f"{dbt_project_dir}/target/manifest.json")
-    )
-    dbt_tables_not_transient = set(
-        table.removesuffix("__transient") for table in dbt_tables
-    )
-    databases = sorted(databases)
-    if not schemas:
-        schemas = _ask_about_database_and_schemas(databases=databases)
-    selected_databases = set(schema.split(".")[0] for schema in schemas)
-    selected_schemas = set(f"'{schema.split('.')[1].upper()}'" for schema in schemas)
-
-    if not selected_schemas:
-        print("Aborting...")
-        return
-
-    existing_table = []
-    with _snow_connection() as cursor:
-        for database in selected_databases:
-            query = f"select table_catalog, table_schema, table_name, last_altered from {database}.information_schema.tables where table_schema in ({','.join(selected_schemas)})"
-            cursor.execute(query)
-            result = cursor.fetchall()
-            for row in result:
-                existing_table.append(row)
-    potential_drepcation_tables = []
-    for table in existing_table:
-        assert (
-            table["TABLE_CATALOG"].lower() in selected_databases
-        ), "not in {selected_databases}"
-        if table["TABLE_SCHEMA"] == "PUBLIC":
-            continue
-        if table["TABLE_SCHEMA"] == "INFORMATION_SCHEMA":
-            continue
-        db_table = f"{table['TABLE_CATALOG']}.{table['TABLE_SCHEMA']}.{table['TABLE_NAME']}".lower()
-        if ignore_tables and db_table in ignore_tables:
-            continue
-        if db_table in dbt_tables:
-            continue
-        if db_table in dbt_tables_not_transient:
-            continue
-        if "drp" in db_table:
-            continue
-        choice = Choice(
-            title=f"{db_table}".ljust(110) + f"Last altered: {table['LAST_ALTERED']}",
-            value=db_table,
+    if not mark_object:
+        _validate_program("dbt")
+        _create_dbt_manifest(
+            dbt_project_dir=dbt_project_dir,
+            dbt_profile_dir=dbt_profile_dir,
+            dbt_target=dbt_target,
         )
-        potential_drepcation_tables.append(
-            {"name": db_table, "last_altered": table["LAST_ALTERED"]}
+        dbt_tables, databases = _get_db_objects_from_manifest(
+            path=Path(f"{dbt_project_dir}/target/manifest.json")
         )
-    if not potential_drepcation_tables:
-        print("No potential tables found.")
-        return
-    potential_drepcation_tables.sort(key=lambda x: x["name"])
+        dbt_tables_not_transient = set(
+            table.removesuffix("__transient") for table in dbt_tables
+        )
+        databases = sorted(databases)
+        if not schemas:
+            schemas = _ask_about_database_and_schemas(databases=databases)
+        selected_databases = set(schema.split(".")[0] for schema in schemas)
+        selected_schemas = set(
+            f"'{schema.split('.')[1].upper()}'" for schema in schemas
+        )
 
-    max_table_name_length: int = max(
-        len(table["name"]) for table in potential_drepcation_tables
-    )
-    potential_drepcation_tables_choices = [
-        Choice(
-            title=f"{table['name']}".ljust(max_table_name_length + 8)
-            + f"Last altered: {table['last_altered']}",
-            value=table,
+        if not selected_schemas:
+            print("Aborting...")
+            return
+
+        existing_table = []
+        with _snow_connection() as cursor:
+            for database in selected_databases:
+                query = f"select table_catalog, table_schema, table_name, last_altered from {database}.information_schema.tables where table_schema in ({','.join(selected_schemas)})"
+                cursor.execute(query)
+                result = cursor.fetchall()
+                for row in result:
+                    existing_table.append(row)
+        potential_drepcation_tables = []
+        for table in existing_table:
+            assert (
+                table["TABLE_CATALOG"].lower() in selected_databases
+            ), "not in {selected_databases}"
+            if table["TABLE_SCHEMA"] == "PUBLIC":
+                continue
+            if table["TABLE_SCHEMA"] == "INFORMATION_SCHEMA":
+                continue
+            db_table = f"{table['TABLE_CATALOG']}.{table['TABLE_SCHEMA']}.{table['TABLE_NAME']}".lower()
+            if ignore_tables and db_table in ignore_tables:
+                continue
+            if db_table in dbt_tables:
+                continue
+            if db_table in dbt_tables_not_transient:
+                continue
+            if "drp" in db_table:
+                continue
+            choice = Choice(
+                title=f"{db_table}".ljust(110)
+                + f"Last altered: {table['LAST_ALTERED']}",
+                value=db_table,
+            )
+            potential_drepcation_tables.append(
+                {"name": db_table, "last_altered": table["LAST_ALTERED"]}
+            )
+        if not potential_drepcation_tables:
+            print("No potential tables found.")
+            return
+        potential_drepcation_tables.sort(key=lambda x: x["name"])
+
+        max_table_name_length: int = max(
+            len(table["name"]) for table in potential_drepcation_tables
         )
-        for table in potential_drepcation_tables
-    ]
-    potential_drepcation_tables_choices.sort(key=lambda x: x.title)
+        potential_drepcation_tables_choices = [
+            Choice(
+                title=f"{table['name']}".ljust(max_table_name_length + 8)
+                + f"Last altered: {table['last_altered']}",
+                value=table,
+            )
+            for table in potential_drepcation_tables
+        ]
+        potential_drepcation_tables_choices.sort(key=lambda x: x.title)
 
     if dry_run:
         print("Potential tables to mark for removal:")
@@ -247,18 +264,21 @@ def mark_objects_for_removal(
             print(table.title)
 
     if not dry_run:
-        selected_tables = questionary.checkbox(
-            "Which tables do you want to deprecate?",
-            choices=potential_drepcation_tables_choices,
-        ).ask()
-        if not selected_tables:
-            print("No tables selected for disposal.")
-            return
+        if not mark_object:
+            selected_tables = questionary.checkbox(
+                "Which tables do you want to deprecate?",
+                choices=potential_drepcation_tables_choices,
+            ).ask()
+            if not selected_tables:
+                print("No tables selected for disposal.")
+                return
+        else:
+            selected_tables = [{"name": table.lower()} for table in mark_object]
         selected_tables.sort(key=lambda x: x["name"])
-        print("Selected tables for disposal:")
+        print("Selected objects for disposal:")
         for table in selected_tables:
             print(table["name"])
-        dispose = questionary.confirm("Do you want to dispose these tables?").ask()
+        dispose = questionary.confirm("Do you want to dispose these objects?").ask()
         if not dispose:
             print("Aborting...")
             return
@@ -287,8 +307,8 @@ def mark_objects_for_removal(
         if not removal_year_month:
             print("Aborting ...")
             return
-        dispose_queries = _dispose_table_query_builder(
-            tables=selected_tables,
+        dispose_queries = _dispose_objects_query_builder(
+            objects=selected_tables,
             removal_month=removal_year_month,
             user_alias=config.get("user_alias", "unknown"),
         )

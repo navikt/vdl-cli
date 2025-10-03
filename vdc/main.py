@@ -124,6 +124,9 @@ def waste():
 )
 @click.option("--ignore-table", "-i", multiple=True, help="Ignore table from search")
 @click.option("--schema", "-s", multiple=True, help="What schema to search in")
+@click.option(
+    "--mark-object", "-m", multiple=True, help="Manually mark object for removal"
+)
 def disposal(
     dbt_project_dir,
     dbt_profile_dir,
@@ -131,10 +134,15 @@ def disposal(
     dry_run,
     ignore_table,
     schema,
+    mark_object,
 ):
     """Mark db objects for removal"""
     from vdc.waste import mark_objects_for_removal
 
+    if mark_object and dry_run == True:
+        raise click.UsageError(
+            "Cannot use --mark-object and --dry-run at the same time"
+        )
     mark_objects_for_removal(
         dbt_project_dir=dbt_project_dir,
         dbt_profile_dir=dbt_profile_dir,
@@ -142,6 +150,7 @@ def disposal(
         dry_run=dry_run,
         ignore_tables=ignore_table,
         schemas=schema,
+        mark_object=mark_object,
     )
 
 
