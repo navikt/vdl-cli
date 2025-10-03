@@ -286,7 +286,7 @@ def mark_objects_for_removal(
         current_year = date_today.year
         current_month = date_today.month
         removal_year_months_choices = []
-        for i in range(1, 13):
+        for i in range(0, 13):
             year = current_year
             month = current_month + i
             if current_month + i > 12:
@@ -299,10 +299,11 @@ def mark_objects_for_removal(
                 title = f"{year}-0{month}"
                 value = f"{year}0{month}"
             removal_year_months_choices.append(Choice(title=title, value=value))
-
+        default_choice = removal_year_months_choices[1]
         removal_year_month = questionary.select(
             "Select month for removal:",
             choices=removal_year_months_choices,
+            default=default_choice,
         ).ask()
         if not removal_year_month:
             print("Aborting ...")
