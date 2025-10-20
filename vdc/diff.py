@@ -107,12 +107,6 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
         compare_to_desc=compare_to_desc,
     )
 
-    print("Running query:")
-    print(prod_query)
-    print("and")
-    print(dev_query)
-    print("")
-
     prod_df, dev_df = _fetch_diff(prod_query=prod_query, dev_query=dev_query)
 
     print("\nRows different or missing in other table:")
