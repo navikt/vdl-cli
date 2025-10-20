@@ -465,10 +465,10 @@ def remove_marked_objects(dry_run: bool):
             print("")
         return
 
-    remove_databases = None
-    remove_schemas = None
-    remove_tables = None
-    remove_views = None
+    remove_databases = []
+    remove_schemas = []
+    remove_tables = []
+    remove_views = []
     if potential_drp_databases:
         remove_databases = questionary.checkbox(
             "Select which databases do you want to remove",
