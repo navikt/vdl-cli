@@ -1,6 +1,5 @@
 import logging
 import os
-from click import echo
 
 import snowflake.connector
 from snowflake.connector import DictCursor
@@ -52,10 +51,13 @@ def create_db_clone(src: str, dst: str, usage: tuple[str] = ()):
             LOGGER.error(f"Source database {prod_db} not found")
             return
 
-        transient = "transient " if database_info[0].get("options") == "TRANSIENT" else ""
+        transient = (
+            "transient " if database_info[0].get("options") == "TRANSIENT" else ""
+        )
+
         create_sql = f"create or replace {transient}database {clone_db} clone {prod_db}"
         conn.run_query(create_sql)
-        
+
         dynamic_tables = conn.run_query(show_dynamic_tables)
         for suspend_dynamic_table in _suspend_dynamic_tables(
             db=clone_db, dynamic_tables=dynamic_tables

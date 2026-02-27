@@ -59,14 +59,18 @@ def _query_builder(
 
 
 def _compare_df(prod_df, dev_df, prod_name, dev_name, primary_key):
-    prod_df = prod_df.set_index(primary_key).sort_index()
-    dev_df = dev_df.set_index(primary_key).sort_index()
+    prod_df = prod_df.set_index(primary_key)
+    dev_df = dev_df.set_index(primary_key)
 
     prod_diff = prod_df.index.difference(dev_df.index)
     dev_diff = dev_df.index.difference(prod_df.index)
 
-    df1 = prod_df.reindex(prod_df.index.values.tolist() + dev_diff.values.tolist())
-    df2 = dev_df.reindex(dev_df.index.values.tolist() + prod_diff.values.tolist())
+    df1 = prod_df.reindex(
+        prod_df.index.values.tolist() + dev_diff.values.tolist()
+    ).sort_index()
+    df2 = dev_df.reindex(
+        dev_df.index.values.tolist() + prod_diff.values.tolist()
+    ).sort_index()
 
     return df1.compare(other=df2, align_axis=0, result_names=(prod_name, dev_name))
 
