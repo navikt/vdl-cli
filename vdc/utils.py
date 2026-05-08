@@ -18,8 +18,7 @@ def _spinner(title: str):
         title=title,
         elapsed=False,
         stats=False,
-        monitor=False,
-        refresh_secs=0.05,
+        monitor=False
     )
 
 
