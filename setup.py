@@ -25,9 +25,10 @@ setup(
         "pyyaml",
         "jinja2",
         "alive-progress",
-        "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0",
+        "snowflake-connector-python[secure-local-storage]>=3.0.0",
         "xlsxwriter",
         "questionary",
+        "pandas",
     ],
     extras_require={
         "all": [],
