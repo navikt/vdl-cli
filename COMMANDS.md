@@ -31,14 +31,12 @@ Options:
 
 Usage: vdc diff [OPTIONS] TABLE
 
-  Compare two tables in Snowflake. All rows are compared, but at most 500
-  differences are fetched per table. Excel filenames include date and time
-  to the minute. Columns starting with _ are excluded from comparison,
-  including when explicitly selected with --column.
+  Compare two tables in Snowflake
 
 Options:
-  -k, --primary-key TEXT        Unique key. Defaults to pk_<table name> for
-                                each table. When provided, used for both tables.
+  -k, --primary-key TEXT        Unique key. Default is pk_<table name> for
+                                each table. When provided, used for both
+                                tables.
   -d, --compare-to-db TEXT      Database you want to compare against. Default
                                 is dev_<devname>_<db> where <devname> is the
                                 value of the environment variable DEV_NAME or
