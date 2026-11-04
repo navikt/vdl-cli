@@ -39,10 +39,15 @@ def _query_builder(
     primary_key: str,
     table_desc: list[dict],
     compare_to_desc: list[dict],
+    compare_to_primary_key: Optional[str] = None,
 ) -> list[str]:
     primary_key = primary_key.lower()
+    compare_to_primary_key = (compare_to_primary_key or primary_key).lower()
     table_column = set(t["name"].lower() for t in table_desc)
     compare_to_column = set(t["name"].lower() for t in compare_to_desc)
+    # Normalize the comparison key before finding common columns.
+    compare_to_column.discard(compare_to_primary_key)
+    compare_to_column.add(primary_key)
     unique_columns = table_column.intersection(compare_to_column)
     if columns:
         columns = tuple(c.lower() for c in columns)
@@ -52,10 +57,16 @@ def _query_builder(
         ignore_columns = tuple(c.lower() for c in ignore_columns)
         unique_columns = unique_columns - set(ignore_columns)
 
-    cols = ",\n".join(f"{col}::varchar as {col}" for col in sorted(unique_columns))
+    # Both sides must select columns in the same order, with a common key alias.
+    ordered_columns = sorted(unique_columns)
+    cols = ",\n".join(f"{col}::varchar as {col}" for col in ordered_columns)
+    compare_cols = ",\n".join(
+        f"{compare_to_primary_key if col == primary_key else col}::varchar as {col}"
+        for col in ordered_columns
+    )
     return [
-        f"select\n{cols}\nfrom {table}\nexcept\nselect\n{cols}\nfrom {compare_to}\norder by {primary_key}\nlimit 500",
-        f"select\n{cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}\norder by {primary_key}\nlimit 500",
+        f"select\n{cols}\nfrom {table}\nexcept\nselect\n{compare_cols}\nfrom {compare_to}\norder by {primary_key}\nlimit 500",
+        f"select\n{compare_cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}\norder by {primary_key}\nlimit 500",
     ]
 
 
@@ -96,7 +107,10 @@ def _remove_tz_from_timestamp_in_df(
 
 
 def table_diff(table, primary_key, compare_to, columns, ignore_columns):
-    primary_key = primary_key.upper()
+    compare_to_primary_key = (
+        primary_key or f"pk_{compare_to.rsplit('.', 1)[-1]}"
+    ).upper()
+    primary_key = (primary_key or f"pk_{table.rsplit('.', 1)[-1]}").upper()
 
     pd.set_option("display.max_rows", None)  # Set to None to display all rows
     pd.set_option("display.max_columns", None)  # Set to None to display all columns
@@ -110,6 +124,7 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
         primary_key=primary_key,
         table_desc=table_desc,
         compare_to_desc=compare_to_desc,
+        compare_to_primary_key=compare_to_primary_key,
     )
 
     prod_df, dev_df = _fetch_diff(prod_query=prod_query, dev_query=dev_query)
