@@ -33,7 +33,8 @@ Usage: vdc diff [OPTIONS] TABLE
 
   Compare two tables in Snowflake. All rows are compared, but at most 500
   differences are fetched per table. Excel filenames include date and time
-  to the minute.
+  to the minute. Columns starting with _ are excluded from comparison,
+  including when explicitly selected with --column.
 
 Options:
   -k, --primary-key TEXT        Unique key. Defaults to pk_<table name> for

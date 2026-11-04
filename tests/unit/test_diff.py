@@ -61,6 +61,26 @@ class TestTableDiff(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(table_diff.call_args.kwargs["primary_key"], "id")
 
+    def test_query_excludes_underscore_columns(self):
+        names = ["PK_FAK_FAKTURA", "VALUE", "_KILDESYSTEM", "_OSTEKAKE", "_OPPDATERT_TIDSPUNKT"]
+        description = [{"name": name} for name in names]
+        for columns in (None, tuple(names)):
+            with self.subTest(columns=columns):
+                queries = _query_builder(
+                    table="db.marts.fak_faktura",
+                    compare_to="dev.marts.fak_faktura",
+                    columns=columns,
+                    ignore_columns=None,
+                    primary_key="PK_FAK_FAKTURA",
+                    table_desc=description,
+                    compare_to_desc=description,
+                )
+                for query in queries:
+                    self.assertIn("value::varchar as value", query)
+                    self.assertIn("pk_fak_faktura::varchar as pk_fak_faktura", query)
+                    for name in names[2:]:
+                        self.assertNotIn(name.lower(), query)
+
     def test_compare_df_with_no_diff(self):
         prod_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         dev_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})

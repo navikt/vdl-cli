@@ -57,6 +57,9 @@ def _query_builder(
         ignore_columns = tuple(c.lower() for c in ignore_columns)
         unique_columns = unique_columns - set(ignore_columns)
 
+    # Internal metadata columns must not participate, even when explicitly selected.
+    unique_columns = {col for col in unique_columns if not col.startswith("_")}
+
     # Both sides must select columns in the same order, with a common key alias.
     ordered_columns = sorted(unique_columns)
     cols = ",\n".join(f"{col}::varchar as {col}" for col in ordered_columns)
