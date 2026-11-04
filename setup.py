@@ -38,6 +38,7 @@ setup(
             "pytest",
             "dbt-core",
             "dbt-snowflake",
+            "setuptools"
         ],
     },
     python_requires=">=3.10",
