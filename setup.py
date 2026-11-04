@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="vdl-cli",
-    version="0.1.36",
+    version="0.1.37",
     description=("CLI tool for helping with daily tasks in Virksomhetsdatalaget"),
     packages=find_packages(include=("vdc/*,")),
     package_data={"vdc": ["banner.txt"]},
@@ -25,7 +25,7 @@ setup(
         "pyyaml",
         "jinja2",
         "alive-progress",
-        "snowflake-connector-python[secure-local-storage]>=3.0.0",
+        "snowflake-connector-python[secure-local-storage,pandas]>=3.0.0,<5.0.0",
         "xlsxwriter",
         "questionary",
         "pandas",

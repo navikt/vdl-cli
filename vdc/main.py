@@ -52,7 +52,11 @@ def clone(db, to, usage):
 
 @cli.command()
 @click.argument("table", nargs=1, required=True)
-@click.argument("primary_key", nargs=1, required=True)
+@click.option(
+    "--primary-key",
+    "-k",
+    help="Unique key. Default is pk_<table name> for each table. When provided, used for both tables.",
+)
 @click.option(
     "--compare-to-db",
     "-d",
