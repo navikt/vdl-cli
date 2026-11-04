@@ -7,7 +7,7 @@ PY = ./.venv/bin/python
 .PHONY: install ## install requirements in virtual env
 install:
 	rm -rf .venv
-	python3.11 -m venv .venv && \
+	python3 -m venv .venv && \
 		${PY} -m pip install --upgrade pip && \
 		${PY} -m pip install -e .[dev]
 
