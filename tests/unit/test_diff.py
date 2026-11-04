@@ -8,6 +8,22 @@ from vdc.diff import _compare_df, _query_builder
 
 class TestTableDiff(unittest.TestCase):
 
+    def test_query_limits_results_after_except(self):
+        queries = _query_builder(
+            table="db.marts.fak_faktura",
+            compare_to="dev.marts.fak_faktura",
+            columns=None,
+            ignore_columns=None,
+            primary_key="PK_FAK_FAKTURA",
+            table_desc=[{"name": "PK_FAK_FAKTURA"}, {"name": "VALUE"}],
+            compare_to_desc=[{"name": "PK_FAK_FAKTURA"}, {"name": "VALUE"}],
+        )
+        for query in queries:
+            self.assertEqual(query.count("limit 500"), 1)
+            self.assertTrue(query.endswith("\norder by pk_fak_faktura\nlimit 500"))
+            self.assertFalse(query.startswith("select * from ("))
+            self.assertIn("\nexcept\n", query)
+
     def test_compare_df_with_no_diff(self):
         prod_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         dev_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})

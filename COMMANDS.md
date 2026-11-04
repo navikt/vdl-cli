@@ -9,7 +9,9 @@ Options:
 
 Commands:
   clone  Clone a database
-  diff   Compare two tables in Snowflake
+  diff   Compare two tables in Snowflake. All rows are compared, but at most 500
+  differences are fetched per table. Excel filenames include date and time
+  to the minute.
   open   Setup and open the environment for the current user
   waste  Commands for marking db objects as waste or removing marked objects
 
@@ -31,7 +33,9 @@ Options:
 
 Usage: vdc diff [OPTIONS] TABLE PRIMARY_KEY
 
-  Compare two tables in Snowflake
+  Compare two tables in Snowflake. All rows are compared, but at most 500
+  differences are fetched per table. Excel filenames include date and time
+  to the minute.
 
 Options:
   -d, --compare-to-db TEXT      Database you want to compare against. Default

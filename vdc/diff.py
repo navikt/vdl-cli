@@ -40,6 +40,7 @@ def _query_builder(
     table_desc: list[dict],
     compare_to_desc: list[dict],
 ) -> list[str]:
+    primary_key = primary_key.lower()
     table_column = set(t["name"].lower() for t in table_desc)
     compare_to_column = set(t["name"].lower() for t in compare_to_desc)
     unique_columns = table_column.intersection(compare_to_column)
@@ -51,10 +52,10 @@ def _query_builder(
         ignore_columns = tuple(c.lower() for c in ignore_columns)
         unique_columns = unique_columns - set(ignore_columns)
 
-    cols = ",\n".join(f"{col}::varchar as {col}" for col in unique_columns)
+    cols = ",\n".join(f"{col}::varchar as {col}" for col in sorted(unique_columns))
     return [
-        f"select\n{cols}\nfrom {table}\nexcept\nselect\n{cols}\nfrom {compare_to}",
-        f"select\n{cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}",
+        f"select\n{cols}\nfrom {table}\nexcept\nselect\n{cols}\nfrom {compare_to}\norder by {primary_key}\nlimit 500",
+        f"select\n{cols}\nfrom {compare_to}\nexcept\nselect\n{cols}\nfrom {table}\norder by {primary_key}\nlimit 500",
     ]
 
 
@@ -113,7 +114,7 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
 
     prod_df, dev_df = _fetch_diff(prod_query=prod_query, dev_query=dev_query)
 
-    print("\nRows different or missing in other table:")
+    print("\nRows different or missing in other table (up to 500 per table):")
     print(f"{table}:".ljust(45) + f"{len(prod_df)}".rjust(10) + " rows")
     print(f"{compare_to}:".ljust(45) + f"{len(dev_df)}".rjust(10) + " rows")
     print("")
@@ -138,7 +139,7 @@ def table_diff(table, primary_key, compare_to, columns, ignore_columns):
 
     generate_report = input("Export to excel? y/N:").lower() == "y"
     if generate_report:
-        dagens_dato = pd.Timestamp.now().strftime("%Y-%m-%d")
+        dagens_dato = pd.Timestamp.now().strftime("%Y-%m-%d_%H-%M")
         file_name = f"diff_{table.lower()}_{dagens_dato}.xlsx"
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             diff.to_excel(writer, sheet_name="diff", merge_cells=False)
